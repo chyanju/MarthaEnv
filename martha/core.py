@@ -56,6 +56,20 @@ class MEnvironment():
 		"""
 		pass
 
+	def get_current_device_state(self) -> MState:
+		"""
+		Access the current state.
+		Returns (MState): the current states of the device/emulator you are in.
+		"""
+		pass
+
+	def get_current_analyzer_state(self) -> MState:
+		"""
+		Access the current state.
+		Returns (MState): the current states of the analyzer you are in.
+		"""
+		pass
+
 	def get_available_actions(self) -> List[MAction]:
 		"""
 		Given the current internal status, return the user a list of available actions.

@@ -6,4 +6,3 @@
 </div>
 
 A Static Analysis Guided Interactive Environment for Android.
-
