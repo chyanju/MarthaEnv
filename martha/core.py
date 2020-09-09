@@ -49,7 +49,6 @@ class MEnvironment():
 		"""
 		self._device = device
 		self._analyzer = analyzer
-		print("CTOR END")
 	
 	def reset(self) -> bool:
 		"""
@@ -73,27 +72,19 @@ class MEnvironment():
 		"""
 		pass
 
+# TODO: right now, just returns list of 'click' actions with subjects- generalize to all possible actions on all active objects later!
 	def get_available_actions(self) :#-> List[MAction]:
 		"""
 		Given the current internal status, return the user a list of available actions.
 		Returns (List[MAction]): a list of available actions for the current state of emulator.
 		"""
-		print("AQUI")
 		first_try = self._device(classNameMatches="android.widget.*")
-		print("POST GET")
-		print("list: ", type(first_try))
-		for i in first_try:
-			print("LOOP")
-			print("TYPE: ",type(i.info))
-			print(i.info)
 
 		action_list = []
-		print("Wow try some crazy stuff")
 
 		for i in first_try:
 			if i.info['clickable']:
-				action_list.append( MAction(i, lambda x: x.click() ))
-
+				action_list.append( MAction(i, lambda x : x.click()))
 		return action_list
 
 	def take_action(self, action: MAction) -> bool:

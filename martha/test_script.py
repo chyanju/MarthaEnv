@@ -16,4 +16,3 @@ for i in action_list:
         i._action(i._subject)
         break
 print("POST")
-print("POST")
