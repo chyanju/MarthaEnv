@@ -1,5 +1,7 @@
 from typing import List, Any
-import uiautomator 
+import uiautomator
+import sys
+import traceback 
 
 class MState():
 	"""
@@ -92,7 +94,15 @@ class MEnvironment():
 		Execute the provided action on both the device/emulator and analyzer.
 		Returns (bool): whether the action is executed successfully.
 		"""
-		pass
+		try:
+			action._action(action._subject)
+			print("Action successful! :)")
+			return True
+		except:
+			print ("The action could not be executed :(")
+			# print("STACK TRACE: ")
+			# traceback.print_exc()
+		return False
 
 	def align(self) -> bool:
 		"""
