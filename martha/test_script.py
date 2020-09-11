@@ -1,11 +1,30 @@
 from core import MEnvironment, MState, MAction, MAnalyzer
 from uiautomator import Device
+import sys
+
+#get device serial num and GATOR path from command-line args
+if len(sys.argv) != 4:
+    print("Please provide the device serial number, path to the analyzer binary, and path to the target apk as command line arguments")
+    exit(1)
+serial = sys.argv[1]
+analyzer_path = sys.argv[2]
+apk_path = sys.argv[3]
 
 #TODO- parameterize serial number that is passed to Device (check active port w adb to get serial num)
-d = Device('emulator-5554')
+# d = Device('emulator-5554')
+device = Device(serial)
+analyzer = MAnalyzer(analyzer_path, apk_path)
+
+print("Time to test the ANALYZER yeet- constructing graph to pass to env")
+apk_graph = analyzer.analyze()
+print("AFTER CALL")
+
+
+
 print("HERE")
-test_env = MEnvironment(d,None)
+test_env = MEnvironment(device, analyzer)
 print("NOW HERE")
+
 action_list = test_env.get_available_actions()
 if len(action_list) > 0:
     print("OUTSIDE FUNCT, LIST:", action_list)
@@ -22,3 +41,5 @@ if len(action_list) > 0:
     print("POST")
 else:
     print("Empty list returned, no clicks to take")
+
+
