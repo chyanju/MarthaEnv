@@ -12,7 +12,6 @@ class MState():
 	def __init__(self, name : str, label : str) -> None:
 		self._name = name
 		self._label = label
-		print("In STATE ctor, vals: ", self._name, self._label)
 
 	def to_string(self):
 		return "Name: "+self._name+" Label: "+self._label
@@ -51,7 +50,21 @@ class MGraph():
 		self._edge_list = edge_list
 		self._init_node = node_dict['n1']	#TODO- make sure that this is assigned to the actual init node, not just the launcher
 		# --> find the LAUNCHER NODE and the corresponding implicit_launch_event transition- the destination of that edge is the starting node
-		self._current_node = 0	#to track current location in graph as actions are taken to traverse it
+
+		#find the initial state by finding the LAUNCHER NODE first
+		launcher_node : MState = None
+		for node in node_dict.values():
+			if "LAUNCHER_NODE" in node._label:
+				launcher_node = node
+				break
+		print("launcher node: ", launcher_node.to_string())
+
+		for edge in edge_list:
+			if edge._source == launcher_node:
+				self._init_node = edge._dest
+		print("init state: ", self._init_node.to_string())
+		
+		self._current_node = self._init_node	#to track current location in graph as actions are taken to traverse it
 
 class MAction():
 	"""
@@ -98,48 +111,26 @@ class MAnalyzer():
 
 		with open(graph_name, 'r') as graph_file:
 			for line in graph_file:
-				print(line)
-				# node_re = re.compile('?P<node_name> [label="?P<node_label>"];')
-				print("HERE")
-				# m = re.match(node_re,line)
-				# m = re.split('(.*) (\[label=".*"\];)', line)
 				if "label" in line:
 					if "->" in line:
-					
-						print("Trying to match on EDGE pattern")
 						edge_re = '(.+?)->+(.+?) \[label=".*evt: (.*?)\\\\nwidget: (.*?)\\\\nhandler.*"\];'
 						edge_params = re.split(edge_re, line)
-						print("Post EDGE match, gonna try to get split vals")
 						edge_params = [x for x in edge_params if (x and not x.isspace())]
 						if edge_params:
-							print("matched")
-							for x in edge_params:
-								print("SEC LOOP: ", x)
 							source_node = edge_params[0].strip()
 							dest_node = edge_params[1].strip()
 							edge_event = edge_params[2].strip()
 							edge_widget = edge_params[3].strip()
 							edge_list.append(MEdge(node_dict[source_node], node_dict[dest_node], edge_event, edge_widget))
-						else:
-							print("not a match")
 
 					else:
-						print("Trying to match on NODE pattern")
 						node_re = '(.*) \[label="(.*)"\];'
 						node_params = re.split(node_re, line)
-						print("Post NODE match, gonna try to get split vals")
 						node_params = [x for x in node_params if (x and not x.isspace())]
 						if node_params:
-							print("matched")
-							for x in node_params:
-								print("SEC LOOP: ", x)
 							curr_node = MState(node_params[0].strip(), node_params[1].strip())
 							node_dict[node_params[0].strip()] = curr_node
-							print("AFTER ADDING NODE TO DICT")
-						else:
-							print("not a match")
 
-		print("\nAfter matching stuff, here are those lists yeee\n")
 		print("NODES")
 		for x in node_dict.keys():
 			print(x," : ", node_dict[x].to_string())
@@ -151,7 +142,6 @@ class MAnalyzer():
 		if node_dict and edge_list:
 			constructed_graph = MGraph(node_dict, edge_list)
 
-		print("end, about to return true")
 		return constructed_graph
 
 
