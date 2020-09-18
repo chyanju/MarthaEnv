@@ -2,6 +2,8 @@ from core import MEnvironment, MState, MAction, MAnalyzer
 from uiautomator import Device
 import sys
 
+# python3 test_script.py emulator-5554 ../../GATOR/gator-3.8/gator/gator ../../tempodroid/case-studies/ValidRec/app/build/outputs/apk/debug/app-debug.apk
+
 #get device serial num and GATOR path from command-line args
 if len(sys.argv) != 4:
     print("Please provide the device serial number, path to the analyzer binary, and path to the target apk as command line arguments")
@@ -22,8 +24,14 @@ print("AFTER CALL")
 
 
 print("HERE")
-test_env = MEnvironment(device, analyzer)
+test_env = MEnvironment(device, apk_graph)
 print("NOW HERE")
+
+print("Gonna try getting local state:")
+curr_state = test_env.get_current_device_state()
+print("POST")
+if curr_state:
+    print("RECEIVED: ", curr_state.to_string())
 
 action_list = test_env.get_available_actions()
 if len(action_list) > 0:

@@ -5,6 +5,8 @@ import traceback
 import subprocess
 import re
 
+LOCAL_STATE_NAME = "CURRENT_LOCAL_STATE"
+
 class MState():
 	"""
 	This stores states from both the static analyzer and andorid emulator.
@@ -12,6 +14,7 @@ class MState():
 	def __init__(self, name : str, label : str) -> None:
 		self._name = name
 		self._label = label
+		self._xml = ''
 
 	def to_string(self):
 		return "Name: "+self._name+" Label: "+self._label
@@ -182,7 +185,64 @@ class MEnvironment():
 		Access the current state.
 		Returns (MState): the current states of the device/emulator you are in.
 		"""
-		pass
+		# call adb window dump to get current active xml
+		# name- some placeholder (LOCAL CURRENT) - make a global const for now
+		# label- package and current activity- from adb dumpsys
+		# create and return new MState obj
+		try:
+			call_dump = subprocess.check_output("adb shell uiautomator dump", shell=True).decode('ascii')
+			print("OUT: ", call_dump)
+			
+			#split output on / to call the location of the window dump
+			call_dump = call_dump.strip().split('/')
+			if len(call_dump) > 1:
+				print("MOD: ", call_dump[1]+'/'+call_dump[2])
+		except subprocess.CalledProcessError as err:
+			print("ERR: ", err.returncode)
+			try:
+				call_dump = subprocess.check_output('adb kill-server; adb shell uiautomator dump', shell=True).decode('ascii')
+				print("SEC OUT: ", call_dump)
+				call_dump = call_dump.strip().split('/')
+				if len(call_dump) > 1:
+					print("MOD: ", call_dump[1]+'/'+call_dump[2])
+				else: 
+					#call did not properly return the dump location, so shouldn't attempt to access
+					return None
+			except subprocess.CalledProcessError as err:
+				print("SEC ERR: ", err.returncode)
+				print("RETURNING NONE")
+				return None
+
+		#if reach this point, then the call to dump was successful, and call_dump[1]+'/'+call_dump[2] holds the location to pull
+		#pull the dump from emulator- will create local file with name contained in call_dump[2]
+		pull_dump = subprocess.call('adb pull '+call_dump[1]+'/'+call_dump[2], shell=True)
+		window_dump = open(call_dump[2])
+		window_contents = window_dump.read()
+		print("CONTENT: ", window_contents)
+
+		#now get current activity from adb dumpsys window, to use as mstate label
+		try:
+			curr_activity = subprocess.check_output("adb shell dumpsys window windows | grep -E 'mCurrentFocus' | cut -d '/' -f2 | cut -d '}' -f1", shell=True)
+			curr_activity = curr_activity.decode('ascii')
+			print("RESULT: ", curr_activity)
+			curr_state = MState(LOCAL_STATE_NAME,curr_activity)
+			curr_state._xml = window_contents
+			print("about to return curr state!!")
+			return curr_state
+		except subprocess.CalledProcessError as err:
+			print("ERR in getting activity: ", err.returncode)
+			return None
+
+		return None
+		# if not get_dump:
+		# 	# if the dump fails, try restarting the server and dumping again
+		# 	# if it fails again, return a None object
+		# 	get_dump = subprocess.call('adb kill-server; adb shell uiautomator dump', shell=True)
+		# 	if not get_dump:
+		# 		return None
+		
+
+
 
 	def get_current_analyzer_state(self) -> MState:
 		"""
@@ -204,6 +264,14 @@ class MEnvironment():
 		for i in first_try:
 			if i.info['clickable']:
 				action_list.append( MAction(i, lambda x : x.click()))
+
+		print("trying to look w resourceid!")
+		sec_try = self._device(resourceIdMatches="2131230725|REC")
+		for x in first_try:
+			print("in LOOP")
+			print(x.info)
+
+		# print("POST attempt")
 		return action_list
 
 	def take_action(self, action: MAction) -> bool:
@@ -212,8 +280,15 @@ class MEnvironment():
 		Returns (bool): whether the action is executed successfully.
 		"""
 		try:
+			print("ACTION SUBJECT: ", action._subject.info)
 			action._action(action._subject)
 			print("Action successful! :)")
+			# look for edges that originate with current_node and are 'click' actions (for now)
+			# can match the edge's widget var with the action subjects info[className]
+			# but how to compare text/id??? gator/uiautomator don't really provide any corresponding info :(((
+			# TODO- determine which edge is being taken, so that the global graph current state can be updated
+			# for edge in self._global_graph._edge_list:
+
 			return True
 		except:
 			print ("The action could not be executed :(")
