@@ -2,8 +2,7 @@ from core import MEnvironment, MState, MAction, MAnalyzer
 from uiautomator import Device
 import sys
 
-# python3 test_script.py emulator-5554 ../../GATOR/gator-3.8/gator/gator ../../tempodroid/case-studies/ValidRec/app/build/outputs/apk/debug/app-debug.apk
-
+#EXAMPLE RUN COMMAND: python3 test_script.py [serial num] [path to GATOR executable] [path to target APK]
 #get device serial num and GATOR path from command-line args
 if len(sys.argv) != 4:
     print("Please provide the device serial number, path to the analyzer binary, and path to the target apk as command line arguments")
