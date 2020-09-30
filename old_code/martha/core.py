@@ -96,7 +96,7 @@ class MAnalyzer():
 		# call the GATOR executable and dump the WTG of the provided APK to the file 'wtg.dot'
 		# then deconstruct the WTG in that file to construct the global graph of the app as an MGraph object
 		# for now, just parsing names and labels, not using stack info in wtg
-		analyze_command = './'+self._binary_path+' a -p '+self._target_apk+ ' -client WTGDumpClient'
+		analyze_command = self._binary_path +' a -p '+ self._target_apk + ' -client WTGDumpClient'
 		
 		try:
 			call_result = subprocess.check_output(analyze_command, shell=True)
@@ -190,7 +190,7 @@ class MEnvironment():
 		# create and return new MState obj
 		try:
 			call_dump = subprocess.check_output("adb shell uiautomator dump", shell=True).decode('ascii')
-			
+			#call_dump = subprocess.check_output("which adb", shell=True).decode('ascii')
 			#split output on / to call the location of the window dump - index[1] holds location on emulator, index[2] holds dumpfile name
 			call_dump = call_dump.strip().split('/')
 		except subprocess.CalledProcessError as err:

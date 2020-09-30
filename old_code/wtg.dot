@@ -1,0 +1,19 @@
+digraph G {
+ rankdir=LR;
+ node[shape=box];
+ n3 [label="LAUNCHER_NODE[]1227"];
+ n1 [label="ACT[com.example.validrec.MainActivity]934"];
+ n2 [label="ACT[com.example.validrec.SECOND_ACTIVITY]938"];
+ n3 -> n1 [label="src: LAUNCHER_NODE[]1227\ntgt: ACT[com.example.validrec.MainActivity]934\ntag: implicit_launch\nevt: implicit_launch_event\nwidget: LAUNCHER_NODE[]1227\nhandler: []\nstack: [[push ACT[com.example.validrec.MainActivity]934]]\n"];
+ n1 -> n1 [label="src: ACT[com.example.validrec.MainActivity]934\ntgt: ACT[com.example.validrec.MainActivity]934\ntag: cyclic_edge\nevt: click\nwidget: INFL[android.widget.Button,WID[2131230725|REC]495,1198]1199\nhandler: [<com.example.validrec.MainActivity: void startRec(android.view.View)>]\nstack: []\n"];
+ n1 -> n1 [label="src: ACT[com.example.validrec.MainActivity]934\ntgt: ACT[com.example.validrec.MainActivity]934\ntag: cyclic_edge\nevt: click\nwidget: INFL[android.widget.Button,WID[2131230727|STOP]497,1198]1204\nhandler: [<com.example.validrec.MainActivity: void stopRec(android.view.View)>]\nstack: []\n"];
+ n1 -> n1 [label="src: ACT[com.example.validrec.MainActivity]934\ntgt: ACT[com.example.validrec.MainActivity]934\ntag: implicit_home\nevt: implicit_home_event\nwidget: ACT[com.example.validrec.MainActivity]934\nhandler: []\nstack: []\n"];
+ n1 -> n1 [label="src: ACT[com.example.validrec.MainActivity]934\ntgt: ACT[com.example.validrec.MainActivity]934\ntag: implicit_power\nevt: implicit_power_event\nwidget: ACT[com.example.validrec.MainActivity]934\nhandler: []\nstack: []\n"];
+ n1 -> n2 [label="src: ACT[com.example.validrec.MainActivity]934\ntgt: ACT[com.example.validrec.SECOND_ACTIVITY]938\ntag: start_activity\nevt: click\nwidget: INFL[android.widget.Button,WID[2131230912|send]800,1198]1209\nhandler: [<com.example.validrec.MainActivity: void nextPage(android.view.View)>]\nstack: [[push ACT[com.example.validrec.SECOND_ACTIVITY]938]]\n"];
+ n1 -> n1 [label="src: ACT[com.example.validrec.MainActivity]934\ntgt: ACT[com.example.validrec.MainActivity]934\ntag: implicit_rotate\nevt: implicit_rotate_event\nwidget: ACT[com.example.validrec.MainActivity]934\nhandler: []\nstack: [[pop ACT[com.example.validrec.MainActivity]934], [push ACT[com.example.validrec.MainActivity]934]]\n"];
+ n1 -> n3 [label="src: ACT[com.example.validrec.MainActivity]934\ntgt: LAUNCHER_NODE[]1227\ntag: implicit_back\nevt: implicit_back_event\nwidget: ACT[com.example.validrec.MainActivity]934\nhandler: []\nstack: [[pop ACT[com.example.validrec.MainActivity]934]]\n"];
+ n2 -> n2 [label="src: ACT[com.example.validrec.SECOND_ACTIVITY]938\ntgt: ACT[com.example.validrec.SECOND_ACTIVITY]938\ntag: implicit_rotate\nevt: implicit_rotate_event\nwidget: ACT[com.example.validrec.SECOND_ACTIVITY]938\nhandler: []\nstack: [[pop ACT[com.example.validrec.SECOND_ACTIVITY]938], [push ACT[com.example.validrec.SECOND_ACTIVITY]938]]\n"];
+ n2 -> n2 [label="src: ACT[com.example.validrec.SECOND_ACTIVITY]938\ntgt: ACT[com.example.validrec.SECOND_ACTIVITY]938\ntag: implicit_power\nevt: implicit_power_event\nwidget: ACT[com.example.validrec.SECOND_ACTIVITY]938\nhandler: []\nstack: []\n"];
+ n2 -> n1 [label="src: ACT[com.example.validrec.SECOND_ACTIVITY]938\ntgt: ACT[com.example.validrec.MainActivity]934\ntag: implicit_back\nevt: implicit_back_event\nwidget: ACT[com.example.validrec.SECOND_ACTIVITY]938\nhandler: []\nstack: [[pop ACT[com.example.validrec.SECOND_ACTIVITY]938]]\n"];
+ n2 -> n2 [label="src: ACT[com.example.validrec.SECOND_ACTIVITY]938\ntgt: ACT[com.example.validrec.SECOND_ACTIVITY]938\ntag: implicit_home\nevt: implicit_home_event\nwidget: ACT[com.example.validrec.SECOND_ACTIVITY]938\nhandler: []\nstack: []\n"];
+}
