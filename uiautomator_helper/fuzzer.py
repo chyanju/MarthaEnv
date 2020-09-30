@@ -96,4 +96,4 @@ if __name__ == "__main__":
     uiautomator_device = Device(device_serial)
     apk_obj = Apk(args.path, log)
     apk_obj.launch_app()
-    window_hierarchy = get_window_hierarchy(uiautomator_device)
+    apk_obj.explore(uiautomator_device)
