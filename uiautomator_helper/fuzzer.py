@@ -1,6 +1,6 @@
 import subprocess
 import sys
-sys.path.append("../..")
+sys.path.append("..")
 from enum import Enum
 import datetime
 import argparse
@@ -22,7 +22,7 @@ import time
 import glob
 import threading
 from pyaxmlparser import APK
-from lib.helper import *
+from lib import *
 from shutil import rmtree
 from apk import *
 
