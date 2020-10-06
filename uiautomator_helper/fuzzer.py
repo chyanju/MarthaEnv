@@ -4,7 +4,8 @@ sys.path.append("..")
 from enum import Enum
 import datetime
 import argparse
-from uiautomator import Device
+#from uiautomator import Device
+import uiautomator2 as u2
 import json
 from pprint import pprint
 from collections import defaultdict
@@ -93,7 +94,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # Initialize the uiautomator device object using the device serial
-    uiautomator_device = Device(device_serial)
+    uiautomator_device = u2.connect(device_serial)
     apk_obj = Apk(args.path, log)
     apk_obj.launch_app()
     apk_obj.explore(uiautomator_device)

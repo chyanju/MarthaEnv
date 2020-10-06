@@ -91,17 +91,13 @@ class Apk:
         time.sleep(2)
 
     def get_current_window_hierarchy(self, uiautomator_device):
-        window_hierarchy = uiautomator_device.dump()
+        window_hierarchy = uiautomator_device.dump_hierarchy()
         window_root = ET.XML(window_hierarchy)
         return window_root
 
 
     def create_gui_element_object(self, xml_node):
-        values = []
-        for item in xml_node.items():
-            values.append(item[1])
-
-        gui_obj = GuiElements(values)
+        gui_obj = GuiElements(xml_node)
 
         return gui_obj
 
@@ -120,7 +116,7 @@ class Apk:
                 index = all_keys.index('clickable')
                 all_items = top_element.items()
 
-                if all_items[index][1] == 'true':
+                if all_items[index][1] == 'true' and top_element.get('package') == self.apk.packagename:
                     gui_obj = self.create_gui_element_object(top_element)
                     clickable_gui_elements.append(gui_obj)
 

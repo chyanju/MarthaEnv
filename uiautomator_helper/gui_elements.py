@@ -25,29 +25,75 @@ from pyaxmlparser import APK
 from lib.helper import *
 
 class GuiElements:
-    def __init__(self, values):
-        self.bounds = values[0]
-        self.checkable = values[1]
-        self.checked = values[2]
-        self.class_name = values[3]
-        self.clickable = values[4]
-        self.content_desc = values[5]
-        self.enabled = values[6]
-        self.focusable = values[7]
-        self.focused = values[8]
-        self.index = values[9]
-        self.long_clickable = values[10]
-        self.package = values[11]
-        self.password = values[12]
-        self.resource_id = values[13]
-        self.scrollable = values[14]
-        self.selected = values[15]
-        self.text = values[16]
+    def __init__(self, node):
+        self.node = node
+        self.index = None
+        self.text = None
+        self.resource_id = None
+        self.class_name = None
+        self.package = None
+        self.content_desc = None
+        self.checkable = None
+        self.checked = None
+        self.clickable = None
+        self.enabled = None
+        self.focusable = None
+        self.focused = None
+        self.scrollable = None
+        self.long_clickable = None
+        self.password = None
+        self.selected = None
+        self.visible_to_user = None
+        self.bounds = None
         self.x = None
         self.y = None
         self.setup()
+        self.compute_coordinate()
 
     def setup(self):
+        for item in self.node.items():
+            key = item[0]
+            value = item[1]
+            if key == 'bounds':
+                self.bounds = value
+            elif key == 'index':
+                self.index = value
+            elif key == 'text':
+                self.text = value
+            elif key == 'resource-id':
+                self.resource_id = value
+            elif key == 'class':
+                self.class_name = value
+            elif key == 'package':
+                self.package = value
+            elif key == 'content-desc':
+                self.content_desc = value
+            elif key == 'checkable':
+                self.checkable = value
+            elif key == 'checked':
+                self.checked = value
+            elif key == 'clickable':
+                self.clickable = value
+            elif key == 'enabled':
+                self.enabled = value
+            elif key == 'focusable':
+                self.focusable = value
+            elif key == 'focused':
+                self.focused = value
+            elif key == 'scrollable':
+                self.scrollable = value
+            elif key == 'long-clickable':
+                self.long_clickable = value
+            elif key == 'password':
+                self.password = value
+            elif key == 'selected':
+                self.selected = value
+            elif key == 'visible-to-user':
+                self.visible_to_user = value
+            else:
+                pass
+
+    def compute_coordinate(self):
         left = self.bounds.split('][')[0]
         right = self.bounds.split('][')[1]
         first = left.split("[")[1].split(',')
