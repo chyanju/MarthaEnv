@@ -84,7 +84,7 @@ class Apk:
     def launch_app(self):
         self.log.info("Kill the current app if already spawned!")
         self.clean_state()
-        time.sleep(1)
+        #time.sleep(1)
 
         self.log.info("Spawning the current app")
         self.spawn_apk()
@@ -135,5 +135,8 @@ class Apk:
 
     def perform_actions(self, uiautomator_device, available_actions):
         for action in available_actions:
-            if action.class_name == 'android.widget.LinearLayout' and action.index == '0':
-                uiautomator_device.click(action.x, action.y)
+            #if action.class_name == 'android.widget.LinearLayout' and action.index == '0':
+            uiautomator_device.click(action.x, action.y)
+            time.sleep(1)
+            uiautomator_device.press('back')
+            time.sleep(1)

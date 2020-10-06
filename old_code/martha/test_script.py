@@ -3,8 +3,6 @@ from uiautomator import Device
 import cProfile, pstats, io
 import subprocess
 import sys
-pr = cProfile.Profile()
-pr.enable()
 #EXAMPLE RUN COMMAND: python3 test_script.py [serial num] [path to GATOR executable] [path to target APK]
 #get device serial num and GATOR path from command-line args
 if len(sys.argv) != 4:
@@ -25,7 +23,9 @@ device = Device(serial)
 analyzer = MAnalyzer(analyzer_path, apk_path)
 
 print("Time to test the ANALYZER yeet- constructing graph to pass to env")
+apk_graph = None
 apk_graph = analyzer.analyze()
+
 print("AFTER CALL")
 
 
@@ -56,11 +56,3 @@ if len(action_list) > 0:
     print("POST")
 else:
     print("Empty list returned, no clicks to take")
-
-
-pr.disable()
-s = io.StringIO()
-sortby = 'cumulative'
-ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-ps.print_stats()
-print(s.getvalue())
