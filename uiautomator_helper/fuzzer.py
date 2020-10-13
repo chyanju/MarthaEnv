@@ -97,6 +97,5 @@ if __name__ == "__main__":
     uiautomator_device = u2.connect(device_serial)
     apk_obj = Apk(args.path, uiautomator_device, log)
     apk_obj.launch_app()
-
     ## This is commented right now
     #apk_obj.explore(uiautomator_device)
