@@ -31,8 +31,9 @@ import IPython
 
 class Apk:
 
-    def __init__(self, apk_path, log):
+    def __init__(self, apk_path, uiautomator_device, log):
         self.apk_path = apk_path
+        self.uiautomator_device = uiautomator_device
         self.apk = None
         self.log = log
         self.setup()
@@ -90,18 +91,21 @@ class Apk:
         self.spawn_apk()
         time.sleep(2)
 
-    def get_current_window_hierarchy(self, uiautomator_device):
-        window_hierarchy = uiautomator_device.dump_hierarchy()
-        window_root = ET.XML(window_hierarchy)
-        return window_root
+    # Get the current device state in xml string
+    # Right now this simply returns the xml window hierarchy
+    def get_current_state(self):
+        window_hierarchy = self.uiautomator_device.dump_hierarchy()
+        return window_hierarchy
 
 
     def create_gui_element_object(self, xml_node):
         gui_obj = GuiElements(xml_node)
-
         return gui_obj
 
-    def get_available_actionable_elements(self, window_root):
+    # This function expects the current device state as an argument
+    # and returns an array of actionable elements
+    def get_available_actionable_elements(self, window_hierarchy):
+        window_root = ET.XML(window_hierarchy)
         bfs_queue = []
         bfs_queue.append(window_root)
         clickable_gui_elements = []
@@ -123,11 +127,13 @@ class Apk:
         return clickable_gui_elements
 
     def explore(self, uiautomator_device):
-        window_root = self.get_current_window_hierarchy(uiautomator_device)
-
-        # For now we just find gui elements which are clickable
-        available_actions = self.get_available_actionable_elements(window_root)
+        window_hierarchy = self.get_current_state()
+        available_actions = self.get_available_actionable_elements(window_hierarchy)
         self.perform_actions(uiautomator_device, available_actions)
+
+    # This method is for performing a single action
+    def perform_action(self, action):
+        self.uiautomator_device.click(action.x, action.y)
 
     def perform_actions(self, uiautomator_device, available_actions):
         for action in available_actions:
