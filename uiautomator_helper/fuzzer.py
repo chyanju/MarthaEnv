@@ -51,6 +51,22 @@ def get_window_hierarchy(uiautomator_device):
     window_hierarchy = uiautomator_device.dump()
     return window_hierarchy
 
+def run_adb_as_root(log):
+    proc = subprocess.Popen(["adb", "root"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    output, error = proc.communicate()
+    output = output.decode().strip()
+    error = error.decode().strip()
+
+    if len(error) == 0:
+        if output == 'adbd is already running as root' or output == 'restarting adbd as root':
+            log.info("Adb is running with root priviledges now!")
+
+        else:
+            log.info("Some other error happened, debug!")
+    else:
+        log.warning("Error occured during adb command, debug!")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Explore actions in the app using uiautomator')
     parser.add_argument('-p', '--path', help='provide full path of the apk')
@@ -95,6 +111,7 @@ if __name__ == "__main__":
 
     # Initialize the uiautomator device object using the device serial
     uiautomator_device = u2.connect(device_serial)
+    run_adb_as_root(log)
     apk_obj = Apk(args.path, uiautomator_device, log)
     apk_obj.launch_app()
     ## This is commented right now

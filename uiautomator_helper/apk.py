@@ -38,8 +38,32 @@ class Apk:
         self.log = log
         self.setup()
 
+    def install_apk(self):
+        if self.check_if_app_exists(self.apk.packagename) is False:
+            proc = subprocess.Popen(["adb", "install", self.apk_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            output, error = proc.communicate()
+            apk_base_name = os.path.basename(self.apk_path)
+
+            if len(error.decode()) == 0:
+                self.log.info("APK installtion done for %s" % apk_base_name)
+
+            else:
+                self.log.warning("Installation errored out for %s" % apk_base_name)
+        else:
+            self.log.info('%s is already installed' % os.path.basename(self.apk_path))
+
+    def check_if_app_exists(self, target_package):
+        proc = subprocess.Popen(["adb", "shell", "pm", "list", "packages"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = proc.communicate()
+        installed_packages = output.decode().splitlines()
+
+        if target_package in installed_packages:
+            return True
+        return False
+
     def setup(self):
         self.apk = APK(self.apk_path)
+        self.install_apk()
 
     def kill_app(self):
         try:
