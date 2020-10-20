@@ -27,9 +27,6 @@ from lib import *
 from shutil import rmtree
 from apk import *
 
-MarthaEnv = '/home/priyanka/research/projects/MarthaEnv'
-OUTPUT_DIR = os.path.join(MarthaEnv, "results")
-
 def get_device_serial(log):
     device_serial = None
     proc = subprocess.Popen(["adb", 'get-serialno'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -68,6 +65,10 @@ def run_adb_as_root(log):
 
 
 if __name__ == "__main__":
+    
+    MarthaEnv = '/home/priyanka/research/projects/MarthaEnv'
+    OUTPUT_DIR = os.path.join(MarthaEnv, "results")
+
     parser = argparse.ArgumentParser(description='Explore actions in the app using uiautomator')
     parser.add_argument('-p', '--path', help='provide full path of the apk')
     parser.add_argument('-o', '--output', default=OUTPUT_DIR, help='path to the location where output will be stored')
