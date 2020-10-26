@@ -113,7 +113,7 @@ class Apk:
 
         self.log.info("Spawning the current app")
         self.spawn_apk()
-        time.sleep(2)
+        time.sleep(8)
 
     # Get the current device state in xml string
     # Right now this simply returns the xml window hierarchy
