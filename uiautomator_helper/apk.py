@@ -150,6 +150,12 @@ class Apk:
 
         return clickable_gui_elements
 
+    def is_target_state(self, current_state, goal_states):
+        for g_state in goal_states:
+            if g_state in current_state:
+                return True
+        return False
+
     def explore(self, uiautomator_device):
         window_hierarchy = self.get_current_state()
         available_actions = self.get_available_actionable_elements(window_hierarchy)
