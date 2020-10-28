@@ -164,7 +164,7 @@ class Apk:
                 index = all_keys.index('clickable')
                 all_items = top_element.items()
 
-                if all_items[index][1] == 'true' and top_element.get('package') == self.apk.packagename:
+                if all_items[index][1] == 'true':
                     gui_obj = self.create_gui_element_object(top_element)
                     clickable_gui_elements.append(gui_obj)
 
