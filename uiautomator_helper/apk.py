@@ -29,6 +29,26 @@ from xml.etree import cElementTree as ElementTree
 import xml.etree.ElementTree as ET
 import IPython
 
+test_data = [["Give up your soul", "Open your eyes", "Keep your eyes closed"], ["Do nothing", "Wait", "Do something"],
+             ["Give up ", "Hide somewhere in the building", "Look around for resources"], ["Close eyes and run", "Close eyes ", "Close eyes and unplug red cable"]]
+
+training_data = [["Go to hell", "Go to limbo", "Go to heaven"],
+ ["Ignore this feeling", "Sit down", "Try to stable your balance"],
+ ["Leave Oakville island", "Unplug yellow cable", "Unplug red cable"],
+ ["Run for your life!", "Plead for your life", "Close your eyes"],
+ ["Is this some sort of joke?", "What?", "Don't get what?"],
+ ["Candle", "Stick", "Torch"],
+ ["Don't follow the signal", "Check if anyone is in the building", "Follow the signal"],
+ ["Keep quiet and do nothing", "Bite knot of rope", "Attempt to untie knot of rope"],
+ ["We're both survivors, get the hell off me!", "Please don't! I am travelling to Oakville", "Please don't! I'll give you my backpack"],
+ ["Look away", "Close your eyes", "Face reality"],
+ ["Let your friend die", "Scream to get the spirits attention", "Go over and help"],
+ ["Use the Radio", "Sneak out of the house and get as far as you can before trying the radio", "Look around for more clues"],
+ ["It's come to this, not even caring about human life anymore and just saving yourself. ", "It's too late, your friend didn't make it.", "It's too late, your friend didn't make it. "],
+ ["Run through the spirit", "Duck", "Run around the spirit"],
+ ["Use the Radio", "Sneak out of the house and get as far as you can before trying the radio", "Look around for more clues"],
+ ["Take your time heading to the house", "Try to avoid being seen by spirits", "Run as fast as you can to the house"]]
+
 class Apk:
 
     def __init__(self, apk_path, uiautomator_device, log):
@@ -150,9 +170,15 @@ class Apk:
 
         return clickable_gui_elements
 
-    def is_target_state(self, current_state, goal_states):
+    def is_target_state(self, current_state, state_type):
+        if state_type == 'test':
+            goal_states = training_data
+
+        else:
+            goal_states = test_data
+
         for g_state in goal_states:
-            if g_state in current_state:
+            if g_state[0] in current_state and g_state[1] in current_state and g_state[2] in current_state:
                 return True
         return False
 
