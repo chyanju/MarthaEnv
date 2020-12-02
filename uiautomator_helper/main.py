@@ -65,8 +65,7 @@ def run_adb_as_root(log):
 
 
 if __name__ == "__main__":
-    
-    MarthaEnv = '/home/priyanka/research/projects/MarthaEnv'
+    MarthaEnv = os.path.dirname(os.getcwd())
     OUTPUT_DIR = os.path.join(MarthaEnv, "results")
 
     parser = argparse.ArgumentParser(description='Explore actions in the app using uiautomator')
