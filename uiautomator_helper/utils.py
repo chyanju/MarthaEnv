@@ -59,3 +59,4 @@ class XmlDictConfig(dict):
             # the text
             else:
                 self.update({element.tag: element.text})
+                    

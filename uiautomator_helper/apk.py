@@ -25,6 +25,7 @@ from pyaxmlparser import APK
 from lib.helper import *
 from utils import *
 from gui_elements import *
+from async_reader import *
 from xml.etree import cElementTree as ElementTree
 import xml.etree.ElementTree as ET
 import IPython
@@ -37,6 +38,8 @@ class Apk:
         self.uiautomator_device = uiautomator_device
         self.apk = None
         self.log = log
+        self.logging = True
+        self.goal_states = []
         self.setup()
 
     def install_apk(self):
@@ -65,6 +68,34 @@ class Apk:
     def setup(self):
         self.apk = APK(self.apk_path)
         self.install_apk()
+
+
+    def enable_logging(self):
+        self.logging = True
+
+    def disable_loggin(self):
+        self.logging = False
+
+    def start_logging(self):
+        # You'll need to add any command line arguments here.
+        process = subprocess.Popen(['adb', 'logcat'], stdout=subprocess.PIPE)
+
+        # Launch the asynchronous readers of the process' stdout.
+        stdout_queue = Queue.Queue()
+        stdout_reader = AsynchronousFileReader(process.stdout, stdout_queue)
+        stdout_reader.start()
+
+        # Check the queues if we received some output (until there is nothing more to get).
+        try:
+            while self.logging and not stdout_reader.eof():
+                while not stdout_queue.empty():
+                    line = stdout_queue.get()
+                    if "TRAIN DATA" in line or "TEST DATA" in line:
+                        #print("Hoorah, I found it! " + str(datetime.datetime.now()))
+                        self.goal_states.append(line)
+                        break
+        finally:
+            process.kill()
 
     def kill_app(self):
         try:
@@ -151,6 +182,36 @@ class Apk:
 
         return clickable_gui_elements
 
+
+    def get_reached_goal_states(self, goal_type):
+        current_goal_states = []
+
+        if goal_type == 'train':
+            for state in self.goal_states:
+                if "TRAIN DATA" in state:
+                    goal_state = state.split("Goal instruction in ")[1].rsplit(" reached")[0]
+                    current_goal_states.append(goal_state)
+
+        else:
+            for state in self.goal_states:
+                if "TEST DATA" in state:
+                    goal_state = state.split("Goal instruction in ")[1].rsplit(" reached")[0]
+                    current_goal_states.append(goal_state)
+
+        self.goal_states = []
+        self.clean_logcat()
+        return current_goal_states
+
+    def clean_logcat(self):
+        proc = subprocess.Popen(["adb", "logcat", "-c"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = proc.communicate()
+        output = output.decode().strip()
+        error = error.decode().strip()
+
+        if len(error) == 0:
+            self.log.info("Old logcat messages cleared!")
+        else:
+            self.log.warning("Error in logcat cleaning")
 
     def explore(self, uiautomator_device):
         window_hierarchy = self.get_current_state()
