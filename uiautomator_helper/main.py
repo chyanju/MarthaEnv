@@ -114,6 +114,7 @@ if __name__ == "__main__":
     run_adb_as_root(log)
     apk_obj = Apk(args.path, uiautomator_device, log)
     apk_obj.launch_app()
+    input()
     #apk_obj.is_target_state()
     #print("")
     ## This is commented right now

@@ -68,6 +68,10 @@ class Apk:
     def setup(self):
         self.apk = APK(self.apk_path)
         self.install_apk()
+        th = threading.Thread(target=self.start_logging)
+        th.start()
+
+        #self.start_logging()
 
 
     def enable_logging(self):
