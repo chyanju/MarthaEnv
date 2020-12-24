@@ -27,6 +27,8 @@ from lib.helper import *
 class GuiElements:
     def __init__(self, node):
         self.node = node
+        self.attributes = {}
+
         self.index = None
         self.text = None
         self.resource_id = None
@@ -54,6 +56,7 @@ class GuiElements:
         for item in self.node.items():
             key = item[0]
             value = item[1]
+            self.attributes[key] = value
             if key == 'bounds':
                 self.bounds = value
             elif key == 'index':

@@ -94,8 +94,8 @@ class Apk:
             while self.logging and not stdout_reader.eof():
                 while not stdout_queue.empty():
                     line = stdout_queue.get()
-                    if "TRAIN DATA" in line or "TEST DATA" in line:
-                        #print("Hoorah, I found it! " + str(datetime.datetime.now()))
+                    if "TRAIN DATA".encode() in line or "TEST DATA".encode() in line:
+                        # print("Hoorah, I found it! " + str(datetime.datetime.now()))
                         self.goal_states.append(line)
                         break
         finally:
@@ -192,14 +192,14 @@ class Apk:
 
         if goal_type == 'train':
             for state in self.goal_states:
-                if "TRAIN DATA" in state:
-                    goal_state = state.split("Goal instruction in ")[1].rsplit(" reached")[0]
+                if "TRAIN DATA".encode() in state:
+                    goal_state = state.decode().split("Goal instruction in ")[1].rsplit(" reached")[0]
                     current_goal_states.append(goal_state)
 
         else:
             for state in self.goal_states:
-                if "TEST DATA" in state:
-                    goal_state = state.split("Goal instruction in ")[1].rsplit(" reached")[0]
+                if "TEST DATA".encode() in state:
+                    goal_state = state.decode().split("Goal instruction in ")[1].rsplit(" reached")[0]
                     current_goal_states.append(goal_state)
 
         self.goal_states = []

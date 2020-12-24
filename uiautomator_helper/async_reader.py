@@ -1,7 +1,10 @@
 #! /usr/bin/env python
 
 # from http://stackoverflow.com/questions/11524586/accessing-logcat-from-android-via-python
-import Queue
+try:
+  import Queue
+except ImportError:
+  import queue as Queue
 import subprocess
 import threading
 import datetime
