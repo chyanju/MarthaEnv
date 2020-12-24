@@ -14,6 +14,7 @@
   "<com.github.cetoolbox.fragments.tabs.ConductivityActivity: void onItemSelected(android.widget.AdapterView,android.view.View,int,long)>": "4",
   "<com.github.cetoolbox.CapillaryElectrophoresis: double getFlowRate()>": "2",
   "<com.github.cetoolbox.GlobalState: java.lang.Double[] getTimePeaks()>": "2",
-  "<com.github.cetoolbox.fragments.tabs.FlowrateActivity: java.lang.String parseEditTextContent()>": "3"
+  "<com.github.cetoolbox.fragments.tabs.FlowrateActivity: java.lang.String parseEditTextContent()>": "3",
+  "<com.github.cetoolbox.fragments.tabs.InjectionActivity: void onClick(android.view.View)>": "3"
 
 }
