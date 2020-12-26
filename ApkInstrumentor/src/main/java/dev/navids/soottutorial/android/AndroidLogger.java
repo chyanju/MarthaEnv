@@ -157,11 +157,11 @@ public class AndroidLogger {
                         String content;
                         if (InstrumentUtil.TAG.equals("TEST DATA")) {
                             String goalState = hashMapKey + " : " + testingData.get(hashMapKey);
-                            content = String.format("%s : Goal instruction in %s reached\n", InstrumentUtil.TAG, goalState);
+                            content = String.format("%s : Goal instruction in %s reached\n", "TEST DATA", goalState);
                         }
                         else{
                             String goalState = hashMapKey + " : " + testingData.get(hashMapKey);
-                            content = String.format("%s : Goal instruction in %s reached\n", InstrumentUtil.TAG, goalState);
+                            content = String.format("%s : Goal instruction in %s reached\n", "TRAIN DATA", goalState);
                         }
                         // In order to call "System.out.println" we need to create a local containing "System.out" value
                         Local psLocal = InstrumentUtil.generateNewLocal(body, RefType.v("java.io.PrintStream"));
