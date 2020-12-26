@@ -1,6 +1,0 @@
-{
-	"<com.github.cetoolbox.CapillaryElectrophoresis: double getMicroEOF()>": "5",
-	"<com.github.cetoolbox.fragments.tabs.InjectionActivity$1: void onClick(android.content.DialogInterface,int)>": "2",
-	"<com.github.cetoolbox.fragments.tabs.ConductivityActivity: void onClick(android.view.View)>": "58",
-	"<com.github.cetoolbox.CapillaryElectrophoresis: double getInjectionPlugLength()>": "11"
-}

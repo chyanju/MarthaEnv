@@ -101,6 +101,22 @@ class Apk:
         finally:
             process.kill()
 
+    def clear_user_data(self):
+        try:
+            clear_command = "adb shell pm clear " + self.apk.packagename
+            output = subprocess.check_output(clear_command, shell=True)
+            PID = output.decode().strip()
+
+            if PID != 'Success':
+                self.log.info("User data can not be cleared, exiting")
+                sys.exit(1)
+
+            else:
+                self.log.info("User data is already cleared.")
+
+        except:
+            pass
+
     def kill_app(self):
         try:
             kill_command = "adb shell ps | grep " + self.apk.packagename + " | awk '{print $2}'"
@@ -149,7 +165,7 @@ class Apk:
 
         self.log.info("Spawning the current app")
         self.spawn_apk()
-        time.sleep(8)
+        time.sleep(2)
 
     # Get the current device state in xml string
     # Right now this simply returns the xml window hierarchy
