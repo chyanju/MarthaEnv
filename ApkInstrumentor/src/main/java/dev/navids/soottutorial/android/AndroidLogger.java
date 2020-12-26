@@ -104,6 +104,8 @@ public class AndroidLogger {
         PackManager.v().getPack("jtp").add(new Transform("jtp.myLogger", new BodyTransformer() {
             @Override
             protected void internalTransform(Body b, String phaseName, Map<String, String> options) {
+                String instrumentationTAG;
+
                 // First we filter out Android framework methods
                 if(InstrumentUtil.isAndroidMethod(b.getMethod()))
                     return;
@@ -145,17 +147,17 @@ public class AndroidLogger {
 
                     String hashMapKey = methodSignature;
                     if (trainingData.containsKey(hashMapKey))
-                        InstrumentUtil.TAG = "TRAIN DATA";
+                        instrumentationTAG = "TRAIN DATA";
 
                     else if (testingData.containsKey(hashMapKey))
-                        InstrumentUtil.TAG = "TEST DATA";
+                        instrumentationTAG = "TEST DATA";
                     else
-                        InstrumentUtil.TAG = "NO INSTRUMENT";
+                        instrumentationTAG = "NO INSTRUMENT";
 
 
-                    if (InstrumentUtil.TAG.equals("TEST DATA") || InstrumentUtil.TAG.equals("TRAIN DATA")) {
+                    if (instrumentationTAG.equals("TEST DATA") || instrumentationTAG.equals("TRAIN DATA")) {
                         String content;
-                        if (InstrumentUtil.TAG.equals("TEST DATA")) {
+                        if (instrumentationTAG.equals("TEST DATA")) {
                             String goalState = hashMapKey + " : " + testingData.get(hashMapKey);
                             content = String.format("%s : Goal instruction in %s reached\n", "TEST DATA", goalState);
                         }
