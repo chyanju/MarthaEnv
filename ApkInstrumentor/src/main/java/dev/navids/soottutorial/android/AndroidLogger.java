@@ -157,11 +157,11 @@ public class AndroidLogger {
                         String content;
                         if (InstrumentUtil.TAG.equals("TEST DATA")) {
                             String goalState = hashMapKey + " : " + testingData.get(hashMapKey);
-                            content = String.format("%s : Goal instruction in %s reached", InstrumentUtil.TAG, goalState);
+                            content = String.format("%s : Goal instruction in %s reached\n", InstrumentUtil.TAG, goalState);
                         }
                         else{
                             String goalState = hashMapKey + " : " + testingData.get(hashMapKey);
-                            content = String.format("%s : Goal instruction in %s reached", InstrumentUtil.TAG, goalState);
+                            content = String.format("%s : Goal instruction in %s reached\n", InstrumentUtil.TAG, goalState);
                         }
                         // In order to call "System.out.println" we need to create a local containing "System.out" value
                         Local psLocal = InstrumentUtil.generateNewLocal(body, RefType.v("java.io.PrintStream"));
@@ -197,13 +197,14 @@ public class AndroidLogger {
                                 targetId = Integer.parseInt(testingData.get(hashMapKey));
                             }
 
-
                             if (id == targetId && flag == false) {
+                                System.out.println(firstNonIdentityStatement);
                                 units.insertBefore(generatedUnits, firstNonIdentityStatement);
                                 break;
                             }
 
                             if (id == targetId && flag == true) {
+                                System.out.println(stmt);
                                 units.insertBefore(generatedUnits, stmt);
                                 break;
                             }
@@ -212,7 +213,7 @@ public class AndroidLogger {
                         }
 
                         // Validate the body to ensure that our code injection does not introduce any problem (at least statically)
-                        //System.out.println(b);
+                        System.out.println(b);
                         b.validate();
 
                     }
