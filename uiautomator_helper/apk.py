@@ -39,6 +39,7 @@ class Apk:
         self.apk = None
         self.log = log
         self.logging = True
+        self.debug = []
         self.goal_states = []
         self.setup()
 
@@ -66,6 +67,7 @@ class Apk:
         return False
 
     def setup(self):
+        self.clean_logcat()
         self.apk = APK(self.apk_path)
         self.install_apk()
         th = threading.Thread(target=self.start_logging)
@@ -94,8 +96,9 @@ class Apk:
             while self.logging and not stdout_reader.eof():
                 while not stdout_queue.empty():
                     line = stdout_queue.get()
+
                     if "TRAIN DATA".encode() in line or "TEST DATA".encode() in line:
-                        # print("Hoorah, I found it! " + str(datetime.datetime.now()))
+                        #print("Hoorah, I found it! " + str(datetime.datetime.now()))
                         self.goal_states.append(line)
                         break
         finally:
@@ -205,7 +208,7 @@ class Apk:
 
     def get_reached_goal_states(self, goal_type):
         current_goal_states = []
-
+        time.sleep(1)
         if goal_type == 'train':
             for state in self.goal_states:
                 if "TRAIN DATA".encode() in state:
@@ -219,7 +222,7 @@ class Apk:
                     current_goal_states.append(goal_state)
 
         self.goal_states = []
-        self.clean_logcat()
+        #self.clean_logcat()
         return current_goal_states
 
     def clean_logcat(self):
@@ -228,6 +231,8 @@ class Apk:
         output = output.decode().strip()
         error = error.decode().strip()
 
+        print(output)
+        print(error)
         if len(error) == 0:
             self.log.info("Old logcat messages cleared!")
         else:
