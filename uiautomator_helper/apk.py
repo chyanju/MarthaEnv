@@ -231,8 +231,6 @@ class Apk:
         output = output.decode().strip()
         error = error.decode().strip()
 
-        print(output)
-        print(error)
         if len(error) == 0:
             self.log.info("Old logcat messages cleared!")
         else:

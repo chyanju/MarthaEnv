@@ -27,6 +27,7 @@ public class AndroidLogger {
     private static Map<String, List<String>> methodDetailsList = new HashMap<>();
     static boolean dump = false;
     static boolean instrument = false;
+    static boolean auto_instrument = false;
     static Map<String, String> trainingData = new HashMap<String, String>();
     static Map<String, String> testingData = new HashMap<String, String>();
 
@@ -69,6 +70,41 @@ public class AndroidLogger {
         }
     }
 
+    public static List<Unit> generateInstrumentedString(String instrumentationTAG, String hashMapKey, JimpleBody body, String id){
+        String content;
+        List<Unit> generatedUnits = new ArrayList<>();
+
+        if (instrumentationTAG.equals("TEST DATA")) {
+            String goalState = hashMapKey + " : " + id;
+            content = String.format("TEST DATA : Goal instruction in %s reached\n", goalState);
+        }
+        else{
+            String goalState = hashMapKey + " : " + id;
+            content = String.format("TRAIN DATA : Goal instruction in %s reached\n", goalState);
+        }
+
+        if (auto_instrument == true) {
+            String goalState = hashMapKey + " : " + id;
+            content = String.format("TRAIN DATA : Goal instruction in %s reached\n", goalState);
+        }
+
+        // In order to call "System.out.println" we need to create a local containing "System.out" value
+        Local psLocal = InstrumentUtil.generateNewLocal(body, RefType.v("java.io.PrintStream"));
+        // Now we assign "System.out" to psLocal
+        SootField sysOutField = Scene.v().getField("<java.lang.System: java.io.PrintStream out>");
+        AssignStmt sysOutAssignStmt = Jimple.v().newAssignStmt(psLocal, Jimple.v().newStaticFieldRef(sysOutField.makeRef()));
+        generatedUnits.add(sysOutAssignStmt);
+
+        // Create println method call and provide its parameter
+        SootMethod printlnMethod = Scene.v().grabMethod("<java.io.PrintStream: void println(java.lang.String)>");
+        Value printlnParamter = StringConstant.v(content);
+        InvokeStmt printlnMethodCallStmt = Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(psLocal, printlnMethod.makeRef(), printlnParamter));
+        generatedUnits.add(printlnMethodCallStmt);
+
+        return generatedUnits;
+
+    }
+
     public static void main(String[] args){
         if(System.getenv().containsKey("ANDROID_HOME"))
             androidJar = System.getenv("ANDROID_HOME")+ File.separator+"platforms";
@@ -87,6 +123,8 @@ public class AndroidLogger {
             if (s.contains("test.json")){
                 jsonReader(s, "testing");
             }
+            if (s.equals("auto_instrument"))
+                auto_instrument = true;
         }
 
 
@@ -112,8 +150,8 @@ public class AndroidLogger {
 
                 JimpleBody body = (JimpleBody) b;
 
-                String declaring_class = b.getMethod().getDeclaringClass().toString();
-                String methodName = b.getMethod().getName();
+                String declaring_class = body.getMethod().getDeclaringClass().toString();
+                String methodName = body.getMethod().getName();
                 String methodSignature = body.getMethod().getSignature();
 
 
@@ -139,13 +177,10 @@ public class AndroidLogger {
                     }
                 }
 
-                if (instrument == true) {
-                    UnitPatchingChain units = b.getUnits();
-                    List<Unit> generatedUnits = new ArrayList<>();
-
-                    // The message that we want to log
+                if (instrument == true || auto_instrument == true) {
 
                     String hashMapKey = methodSignature;
+
                     if (trainingData.containsKey(hashMapKey))
                         instrumentationTAG = "TRAIN DATA";
 
@@ -155,28 +190,10 @@ public class AndroidLogger {
                         instrumentationTAG = "NO INSTRUMENT";
 
 
-                    if (instrumentationTAG.equals("TEST DATA") || instrumentationTAG.equals("TRAIN DATA")) {
-                        String content;
-                        if (instrumentationTAG.equals("TEST DATA")) {
-                            String goalState = hashMapKey + " : " + testingData.get(hashMapKey);
-                            content = String.format("%s : Goal instruction in %s reached\n", "TEST DATA", goalState);
-                        }
-                        else{
-                            String goalState = hashMapKey + " : " + testingData.get(hashMapKey);
-                            content = String.format("%s : Goal instruction in %s reached\n", "TRAIN DATA", goalState);
-                        }
-                        // In order to call "System.out.println" we need to create a local containing "System.out" value
-                        Local psLocal = InstrumentUtil.generateNewLocal(body, RefType.v("java.io.PrintStream"));
-                        // Now we assign "System.out" to psLocal
-                        SootField sysOutField = Scene.v().getField("<java.lang.System: java.io.PrintStream out>");
-                        AssignStmt sysOutAssignStmt = Jimple.v().newAssignStmt(psLocal, Jimple.v().newStaticFieldRef(sysOutField.makeRef()));
-                        generatedUnits.add(sysOutAssignStmt);
+                    if (instrumentationTAG.equals("TEST DATA") || instrumentationTAG.equals("TRAIN DATA") || auto_instrument == true) {
 
-                        // Create println method call and provide its parameter
-                        SootMethod printlnMethod = Scene.v().grabMethod("<java.io.PrintStream: void println(java.lang.String)>");
-                        Value printlnParamter = StringConstant.v(content);
-                        InvokeStmt printlnMethodCallStmt = Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(psLocal, printlnMethod.makeRef(), printlnParamter));
-                        generatedUnits.add(printlnMethodCallStmt);
+                        UnitPatchingChain units = body.getUnits();
+                        //List<Unit> generatedUnits = new ArrayList<>();
 
                         Iterator<Unit> i = body.getUnits().snapshotIterator();
                         Stmt firstNonIdentityStatement = body.getFirstNonIdentityStmt();
@@ -185,37 +202,49 @@ public class AndroidLogger {
                         double dbl_targetId;
                         int targetId = -1;
                         int id = 0;
+
                         while (i.hasNext()) {
                             Stmt stmt = (Stmt) i.next();
 
-                            if (stmt == firstNonIdentityStatement)
-                                flag = true;
-
-                            if (trainingData.containsKey(hashMapKey)) {
-                                targetId = Integer.parseInt(trainingData.get(hashMapKey));
+                            if (auto_instrument == true) {
+                                if (stmt.toString().contains("openConnection()")) {
+                                    List<Unit> generatedUnits = generateInstrumentedString("auto", hashMapKey, body, Integer.toString(id));
+                                    units.insertBefore(generatedUnits, stmt);
+                                }
                             }
+                            else {
 
-                            if (testingData.containsKey(hashMapKey)) {
-                                targetId = Integer.parseInt(testingData.get(hashMapKey));
-                            }
+                                if (stmt == firstNonIdentityStatement)
+                                    flag = true;
 
-                            if (id == targetId && flag == false) {
-                                System.out.println(firstNonIdentityStatement);
-                                units.insertBefore(generatedUnits, firstNonIdentityStatement);
-                                break;
-                            }
+                                if (trainingData.containsKey(hashMapKey)) {
+                                    targetId = Integer.parseInt(trainingData.get(hashMapKey));
+                                }
 
-                            if (id == targetId && flag == true) {
-                                System.out.println(stmt);
-                                units.insertBefore(generatedUnits, stmt);
-                                break;
+                                if (testingData.containsKey(hashMapKey)) {
+                                    targetId = Integer.parseInt(testingData.get(hashMapKey));
+                                }
+
+                                if (id == targetId && flag == false) {
+                                    //System.out.println(firstNonIdentityStatement);
+                                    List<Unit> generatedUnits = generateInstrumentedString(instrumentationTAG, hashMapKey, body, Integer.toString(id));
+                                    units.insertBefore(generatedUnits, firstNonIdentityStatement);
+                                    break;
+                                }
+
+                                if (id == targetId && flag == true) {
+                                    //System.out.println(stmt);
+                                    List<Unit> generatedUnits = generateInstrumentedString(instrumentationTAG, hashMapKey, body, Integer.toString(id));
+                                    units.insertBefore(generatedUnits, stmt);
+                                    break;
+                                }
                             }
 
                             id = id + 1;
                         }
 
                         // Validate the body to ensure that our code injection does not introduce any problem (at least statically)
-                        System.out.println(b);
+                        //System.out.println(b);
                         b.validate();
 
                     }
