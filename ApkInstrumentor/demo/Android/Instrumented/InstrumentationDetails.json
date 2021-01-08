@@ -1,0 +1,11 @@
+{
+  "<org.wordpress.android.Posts: java.io.InputStream getResponse(java.lang.String)>": [
+    "9:$r5 = virtualinvoke $r4.<java.net.URL: java.net.URLConnection openConnection()>()"
+  ],
+  "<org.wordpress.android.ViewStats$statsChartTask: android.graphics.Bitmap doInBackground(java.lang.String[])>": [
+    "9:$r7 = virtualinvoke $r5.<java.net.URL: java.net.URLConnection openConnection()>()"
+  ],
+  "<org.wordpress.android.AddAccount: java.io.InputStream getResponse(java.lang.String)>": [
+    "9:$r5 = virtualinvoke $r4.<java.net.URL: java.net.URLConnection openConnection()>()"
+  ]
+}

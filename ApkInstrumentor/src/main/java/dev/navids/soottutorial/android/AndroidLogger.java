@@ -25,6 +25,7 @@ public class AndroidLogger {
     static String outputPath = androidDemoPath + File.separator + "/Instrumented";
     static String idFilePath = outputPath + File.separator + "/JimpleIR.id";
     private static Map<String, List<String>> methodDetailsList = new HashMap<>();
+    private static Map<String, List<String>>  instrumentationDetails = new HashMap<>();
     static boolean dump = false;
     static boolean instrument = false;
     static boolean auto_instrument = false;
@@ -33,12 +34,12 @@ public class AndroidLogger {
 
 
 
-    public static void jsonWriter()
+    public static void jsonWriter(String filePath, Map<String, List<String>> outPutList)
     {
         Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
-        try(FileWriter writer = new FileWriter(idFilePath))
+        try(FileWriter writer = new FileWriter(filePath))
         {
-            gson.toJson(methodDetailsList,writer);
+            gson.toJson(outPutList,writer);
 
             writer.close();
         }
@@ -210,6 +211,12 @@ public class AndroidLogger {
                                 if (stmt.toString().contains("openConnection()")) {
                                     List<Unit> generatedUnits = generateInstrumentedString("auto", hashMapKey, body, Integer.toString(id));
                                     units.insertBefore(generatedUnits, stmt);
+
+                                    if (instrumentationDetails.get(hashMapKey) == null)
+                                        instrumentationDetails.put(hashMapKey, new ArrayList<String>());
+
+                                    String stmtString = Integer.toString(id) + ":" + stmt.toString();
+                                    instrumentationDetails.get(hashMapKey).add(stmtString);
                                 }
                             }
                             else {
@@ -244,7 +251,7 @@ public class AndroidLogger {
                         }
 
                         // Validate the body to ensure that our code injection does not introduce any problem (at least statically)
-                        //System.out.println(b);
+                        System.out.println(b);
                         b.validate();
 
                     }
@@ -256,7 +263,12 @@ public class AndroidLogger {
         // Write the result of packs in outputPath
         PackManager.v().writeOutput();
         if (dump)
-            jsonWriter();
+            jsonWriter(idFilePath, methodDetailsList);
+
+        if (auto_instrument) {
+            String jsonFilePath = outputPath + File.separator + "/InstrumentationDetails.json";
+            jsonWriter(jsonFilePath, instrumentationDetails);
+        }
     }
 
 }
