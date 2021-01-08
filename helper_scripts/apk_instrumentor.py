@@ -39,7 +39,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.appdir is not None:
-        apk_path_pattern = os.path.join(args.appdir, "*.apk")
+        apk_path_pattern = os.path.join(args.appdir, "**/*.apk")
         apks = glob.glob(apk_path_pattern)
 
     else:
