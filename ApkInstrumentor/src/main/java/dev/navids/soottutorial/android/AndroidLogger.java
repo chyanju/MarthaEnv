@@ -266,7 +266,7 @@ public class AndroidLogger {
             jsonWriter(idFilePath, methodDetailsList);
 
         if (auto_instrument) {
-            String jsonFilePath = outputPath + File.separator + "/InstrumentationDetails.json";
+            String jsonFilePath = outputPath + File.separator + "/goals.json";
             jsonWriter(jsonFilePath, instrumentationDetails);
         }
     }

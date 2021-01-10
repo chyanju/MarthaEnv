@@ -154,9 +154,20 @@ class Apk:
 
     def spawn_apk(self):
         try:
-            main_activity_path = self.apk.packagename + "/" + list(self.apk.get_main_activities())[0]
+            main_activity = list(self.apk.get_main_activities())[0]
+            if self.apk.packagename not in main_activity:
+                main_activity = self.apk.packagename + "." + main_activity
+
+            main_activity_path = self.apk.packagename + "/" + main_activity
             proc = subprocess.Popen(["adb", 'shell', 'am', 'start', '-n', main_activity_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = proc.communicate()
+
+            if len(error.decode()) == 0:
+                self.log.info('Apk spawned successfully!')
+
+            else:
+                self.log.error('Issue with apk spawning, debug!')
+                sys.exit(1)
 
         except Exception as e:
             raise e

@@ -57,6 +57,8 @@ if __name__ == "__main__":
     temp_output_dir = os.path.join(APK_INSTRUMENTER_PATH, "demo/Android/Instrumented")
 
     for apk in apks:
+        coverage_file_name = os.path.splitext(os.path.basename(apk))[0] + ".em"
+        coverage_em_file_path = os.path.join(os.path.dirname(apk), coverage_file_name)
         apk_output_dir = os.path.join(args.outputdir, os.path.splitext(os.path.basename(apk))[0])
 
         if os.path.exists(apk_output_dir):
@@ -76,7 +78,11 @@ if __name__ == "__main__":
 
             if status_code == 0:
                 log.info("%s signed successfully" % os.path.basename(apk))
+                apk_base_name = os.path.basename(apk)
+
+                coverage_out_file = apk_base_name.replace(".apk", ".em")
                 copy_tree(temp_output_dir, apk_output_dir)
+                shutil.copyfile(coverage_em_file_path, os.path.join(apk_output_dir, coverage_out_file))
         else:
             log.warning("Build failed for some reason for %s" % os.path.basename(apk))
 
