@@ -108,7 +108,7 @@ OUTPUT_DIR = os.path.join(CURR_DIR, "results")
 
 args = {
 #     "path": "../test/com.github.cetoolbox_11/app_simple0.apk",
-    "path": "/Users/joseph/Desktop/UCSB/20summer/MarthaEnv/tmp/Wordpress_394/Wordpress_394.apk",
+    "path": "/home/priyanka/research/projects/goal_input/Wordpress_394/Wordpress_394.apk",
 #     "path": "/Users/joseph/Desktop/UCSB/20summer/MarthaEnv/tmp/com.zoffcc.applications.aagtl_31/com.zoffcc.applications.aagtl_31.apk",
 #     "path": "/Users/joseph/Desktop/UCSB/20summer/MarthaEnv/tmp/Translate/Translate.apk",
     "output": "../results/",

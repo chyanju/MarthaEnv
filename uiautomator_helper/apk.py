@@ -159,7 +159,7 @@ class Apk:
                 main_activity = self.apk.packagename + "." + main_activity
 
             main_activity_path = self.apk.packagename + "/" + main_activity
-            proc = subprocess.Popen(["adb", 'shell', 'am', 'start', '-n', main_activity_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(["adb", 'shell', 'am', 'start', '-S', '-n', main_activity_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = proc.communicate()
 
             if len(error.decode()) == 0:
