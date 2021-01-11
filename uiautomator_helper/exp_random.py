@@ -73,11 +73,23 @@ def rollout(arg_config):
         rollout_action_ids = []
 
         for i in range(arg_config["maxn_steps"]):
-
             i_observation = arg_config["environment"].get_current_state()
             i_ids = action_filter(
                 arg_config["environment"].get_available_actionable_elements(i_observation)
             )
+
+            ## FIXME: This is not a real fix, we need to have a way to know whether next activity is loaded. Since,
+            ## sometimes dumping window xml happens before even next activity or the screen is loaded. Now, we simply
+            ## introduce a delay of 2 sec if available actions are empty and dump the window hierarchy again. However,
+            ## even if i_ids still contains actions, that may be stale actions from previous activity. So, we should have
+            ## a way to know that the next activity or screen is actually loaded before window xml is dumped
+
+            if len(i_ids) == 0:
+                time.sleep(2)
+                i_observation = arg_config["environment"].get_current_state()
+                i_ids = action_filter(
+                    arg_config["environment"].get_available_actionable_elements(i_observation)
+                )
 
             # explore
             selected_action_id = random.choice(list(range(len(i_ids))))
