@@ -33,13 +33,14 @@ import IPython
 
 class Apk:
 
-    def __init__(self, apk_path, uiautomator_device, log):
+    def __init__(self, apk_path, uiautomator_device, output_dir, log):
         self.apk_path = apk_path
         self.uiautomator_device = uiautomator_device
         self.apk = None
         self.log = log
         self.logging = True
         self.debug = []
+        self.output_dir = output_dir
         self.goal_states = []
         self.setup()
 
@@ -85,7 +86,7 @@ class Apk:
     def start_logging(self):
         # You'll need to add any command line arguments here.
         process = subprocess.Popen(['adb', 'logcat'], stdout=subprocess.PIPE)
-
+        start_time = time.time()
         # Launch the asynchronous readers of the process' stdout.
         stdout_queue = Queue.Queue()
         stdout_reader = AsynchronousFileReader(process.stdout, stdout_queue)
@@ -93,13 +94,24 @@ class Apk:
 
         # Check the queues if we received some output (until there is nothing more to get).
         try:
-            while self.logging and not stdout_reader.eof():
+            while not stdout_reader.eof():
                 while not stdout_queue.empty():
+                    if not self.logging:
+                        process.kill()
+                        return
+
                     line = stdout_queue.get()
 
                     if "TRAIN DATA".encode() in line or "TEST DATA".encode() in line:
                         #print("Hoorah, I found it! " + str(datetime.datetime.now()))
+                        hit_time = time.time()
                         self.goal_states.append(line)
+                        strline = "Goal state %s has been found after %f seconds" % (line, hit_time - start_time)
+
+                        ## write goal states to a file
+                        file_path = os.path.join(self.output_dir, "logcat.txt")
+                        with open(file_path, 'a+') as f:
+                            f.write("%s\n" % strline)
                         break
         finally:
             process.kill()

@@ -112,7 +112,7 @@ if __name__ == "__main__":
     # Initialize the uiautomator device object using the device serial
     uiautomator_device = u2.connect(device_serial)
     run_adb_as_root(log)
-    apk_obj = Apk(args.path, uiautomator_device, log)
+    apk_obj = Apk(args.path, uiautomator_device, output_dir, log)
     apk_obj.launch_app()
     input()
     #apk_obj.is_target_state()
