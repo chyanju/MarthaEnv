@@ -168,7 +168,11 @@ class Apk:
         try:
             main_activity = list(self.apk.get_main_activities())[0]
             if self.apk.packagename not in main_activity:
-                main_activity = self.apk.packagename + "." + main_activity
+                if main_activity.startswith("."):
+                    main_activity = self.apk.packagename + main_activity
+
+                else:
+                    main_activity = self.apk.packagename + "." + main_activity
 
             main_activity_path = self.apk.packagename + "/" + main_activity
             proc = subprocess.Popen(["adb", 'shell', 'am', 'start', '-S', '-n', main_activity_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
