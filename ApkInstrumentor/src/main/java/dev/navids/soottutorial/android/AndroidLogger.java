@@ -208,7 +208,7 @@ public class AndroidLogger {
                             Stmt stmt = (Stmt) i.next();
 
                             if (auto_instrument == true) {
-                                if (stmt.toString().contains("openConnection()")) {
+                                if (stmt.toString().contains("openConnection()") || stmt.toString().contains("sendMessage()") || stmt.toString().contains("AdRequest()")) {
                                     List<Unit> generatedUnits = generateInstrumentedString("auto", hashMapKey, body, Integer.toString(id));
                                     units.insertBefore(generatedUnits, stmt);
 
