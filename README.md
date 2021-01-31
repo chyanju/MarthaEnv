@@ -10,8 +10,12 @@ Static Analysis Guided Interactive Environment for Android
   * `./gradlew run --args="AndroidLogger dump /path/to/app.apk"`
   * Output in `ApkInstrumentor/demo/Android`
 
-### Instrument Apk
+### Instrument Apk using test and training data
   * `./gradlew run --args="AndroidLogger instrument /path/to/app.apk /path/to/train.json /path/to/test.json"`
+  * instrumented apk will be stored in : `ApkInstrumentor/demo/Android/Instrumented/app.apk`
+  
+### Auto instrument sensitive APIs
+  * `./gradlew run --args="AndroidLogger auto_instrument"`
   * instrumented apk will be stored in : `ApkInstrumentor/demo/Android/Instrumented/app.apk`
 
 ### Sign and install the apk
