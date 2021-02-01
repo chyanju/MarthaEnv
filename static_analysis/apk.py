@@ -66,6 +66,8 @@ class Error(Enum):
     ENV_VAR_NOT_SET = 1
     FILE_NOT_FOUND = 2
 
+sensitiveAPIs = ["openConnection()", "sendMessage()", "AdRequest()", "javax.crypto", "javax.net.ssl"]
+
 class Apk:
 
 	def __init__(self, apk_path, result_dir, log):
@@ -164,6 +166,19 @@ class Apk:
 			return method_name
 		pysoot.sootir.soot_method.SootMethod.__str__ = new_str
 
+
+	def get_sensitive_api_methods(self):
+		methods = []
+		for method in self._methods:
+			for block in method.blocks:
+				for stmt in block.statements:
+					stmt_string = str(stmt)
+
+					for api in sensitiveAPIs:
+						if api in stmt_string:
+							methods.append(method)
+
+		return methods
 
 	def print_graph_dot(self, graph, graph_dir):
 		content = ''

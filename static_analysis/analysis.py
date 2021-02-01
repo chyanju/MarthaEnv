@@ -75,6 +75,8 @@ def analyze_apk(apk):
     #if os.path.exists(apk_obj_filepath):
     try:
         apk_obj = Apk(apk, result_dir, log)
+        callgraph = apk_obj.get_callgraph()
+        sensitive_methods = apk_obj.get_sensitive_api_methods()
 
     except:
         traceback.print_exc()

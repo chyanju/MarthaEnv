@@ -222,7 +222,7 @@ public class AndroidLogger {
             PackManager.v().runPacks();
             // Write the result of packs in outputPath
             PackManager.v().writeOutput();
-        }    
+        }
     }
 
     public static void main(String[] args) throws IOException {
