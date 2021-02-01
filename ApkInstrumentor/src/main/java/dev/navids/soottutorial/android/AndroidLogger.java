@@ -6,13 +6,13 @@ import com.google.gson.reflect.TypeToken;
 import soot.*;
 import soot.jimple.*;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Reader;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.*;import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
+import soot.jimple.infoflow.results.InfoflowResults;
+import org.xmlpull.v1.XmlPullParserException;
+import soot.util.queue.QueueReader;
 
 
 
@@ -22,15 +22,20 @@ public class AndroidLogger {
     private static String androidJar = USER_HOME + "/Library/Android/sdk/platforms";
     static String androidDemoPath = System.getProperty("user.dir") + File.separator + "demo" + File.separator + "Android";
     static String apkPath = androidDemoPath + File.separator + "/opensudoku-sdk-22.apk";
+    static String dirpath;
     static String outputPath = androidDemoPath + File.separator + "/Instrumented";
+    static String outputApkspath = USER_HOME + "/output";
     static String idFilePath = outputPath + File.separator + "/JimpleIR.id";
     private static Map<String, List<String>> methodDetailsList = new HashMap<>();
     private static Map<String, List<String>>  instrumentationDetails = new HashMap<>();
     static boolean dump = false;
     static boolean instrument = false;
     static boolean auto_instrument = false;
+    static boolean app_select = false;
+    static String[] sensitiveAPIs = {"openConnection()", "sendMessage()", "AdRequest()", "javax.crypto", "javax.net.ssl"};
     static Map<String, String> trainingData = new HashMap<String, String>();
     static Map<String, String> testingData = new HashMap<String, String>();
+    static boolean candidate;
 
 
 
@@ -106,7 +111,121 @@ public class AndroidLogger {
 
     }
 
-    public static void main(String[] args){
+    public static void processApks() throws IOException {
+        List<String> apkFiles = new ArrayList<String>();
+        File apkFile = new File(dirpath);
+
+        if (apkFile.isDirectory()) {
+            String[] dirFiles = apkFile.list(new FilenameFilter() {
+
+                @Override
+                public boolean accept(File dir, String name) {
+                    return (name.endsWith(".apk"));
+                }
+
+            });
+
+            for (String s : dirFiles)
+                apkFiles.add(s);
+
+        } else {
+            //apk is a file so grab the extension
+            String extension = apkFile.getName().substring(apkFile.getName().lastIndexOf("."));
+            if (extension.equalsIgnoreCase(".txt")) {
+                BufferedReader rdr = new BufferedReader(new FileReader(apkFile));
+                String line = null;
+
+                while ((line = rdr.readLine()) != null)
+                    apkFiles.add(line);
+                rdr.close();
+            }
+            else if (extension.equalsIgnoreCase(".apk"))
+                apkFiles.add(dirpath);
+
+            else {
+                System.err.println("Invalid input file format: " + extension);
+                return;
+            }
+        }
+
+        for (final String fileName : apkFiles) {
+            final String fullFilePath;
+            System.gc();
+
+            // Directory handling
+            if (apkFiles.size() > 1) {
+                if (apkFile.isDirectory())
+                    fullFilePath = dirpath + File.separator + fileName;
+                else
+                    fullFilePath = fileName;
+                System.out.println("Analyzing file " + fullFilePath + "...");
+
+            }
+            else
+                fullFilePath = fileName;
+
+            // Run the analysis
+            checkSensitiveApis(fullFilePath);
+
+            System.gc();
+        }
+
+    }
+
+    private static void checkSensitiveApis(final String filePath) {
+        String package_name = InstrumentUtil.getPackageName(apkPath);
+        candidate = false;
+
+        // Clean the outputPath
+        final File[] files = (new File(outputApkspath)).listFiles();
+        if (files != null && files.length > 0) {
+            Arrays.asList(files).forEach(File::delete);
+        }
+        // Initialize Soot
+        InstrumentUtil.setupSoot(androidJar, filePath, outputApkspath);
+
+
+        // Add a transformation pack in order to add the statement "System.out.println(<content>) at the beginning of each Application method
+        PackManager.v().getPack("jtp").add(new Transform("jtp.myLogger", new BodyTransformer() {
+            @Override
+            protected void internalTransform(Body b, String phaseName, Map<String, String> options) {
+
+                // First we filter out Android framework methods
+                if (InstrumentUtil.isAndroidMethod(b.getMethod()))
+                    return;
+
+                JimpleBody body = (JimpleBody) b;
+
+
+                String declaring_class = body.getMethod().getDeclaringClass().toString();
+                SootMethod method = body.getMethod();
+
+                if (!declaring_class.contains(package_name) || method.getName().contains("init") || method.getName().contains(".R"))
+                    return;
+
+                String bodyString = method.getActiveBody().toString();
+
+                for (final String apiName : sensitiveAPIs) {
+                    if (bodyString.contains(apiName)){
+                        candidate = true;
+                        break;
+                    }
+                }
+
+
+            }
+
+        }));
+
+        if (candidate) {
+            // Run Soot packs (note that our transformer pack is added to the phase "jtp")
+            PackManager.v().runPacks();
+            // Write the result of packs in outputPath
+            PackManager.v().writeOutput();
+        }    
+    }
+
+    public static void main(String[] args) throws IOException {
         if(System.getenv().containsKey("ANDROID_HOME"))
             androidJar = System.getenv("ANDROID_HOME")+ File.separator+"platforms";
 
@@ -114,8 +233,15 @@ public class AndroidLogger {
             if (s.equals("dump"))
                 dump = true;
 
+            if (s.equals("app_select"))
+                app_select = true;
+
             if (s.equals("instrument"))
                 instrument = true;
+
+            if (s.equals("auto_instrument"))
+                auto_instrument = true;
+
             if (s.contains(".apk"))
                 apkPath = s;
             if (s.contains("train.json")){
@@ -124,150 +250,168 @@ public class AndroidLogger {
             if (s.contains("test.json")){
                 jsonReader(s, "testing");
             }
-            if (s.equals("auto_instrument"))
-                auto_instrument = true;
+
+            if (s.contains("/") && !s.contains(".apk") && !s.contains("train.json") && !s.contains("test.json")){
+                dirpath = s;
+            }
+
         }
 
-
-        String package_name = InstrumentUtil.getPackageName(apkPath);
-        // Clean the outputPath
-        final File[] files = (new File(outputPath)).listFiles();
-        if (files != null && files.length > 0) {
-            Arrays.asList(files).forEach(File::delete);
-        }
-        // Initialize Soot
-        InstrumentUtil.setupSoot(androidJar, apkPath, outputPath);
-
-
-        // Add a transformation pack in order to add the statement "System.out.println(<content>) at the beginning of each Application method
-        PackManager.v().getPack("jtp").add(new Transform("jtp.myLogger", new BodyTransformer() {
-            @Override
-            protected void internalTransform(Body b, String phaseName, Map<String, String> options) {
-                String instrumentationTAG;
-
-                // First we filter out Android framework methods
-                if(InstrumentUtil.isAndroidMethod(b.getMethod()))
-                    return;
-
-                JimpleBody body = (JimpleBody) b;
-
-                String declaring_class = body.getMethod().getDeclaringClass().toString();
-                String methodName = body.getMethod().getName();
-                String methodSignature = body.getMethod().getSignature();
-
-
-                if (!declaring_class.contains(package_name) || methodName.contains("init") || methodName.contains(".R"))
-                    return;
-
-
-                if (dump){
-
-                    if (methodDetailsList.get(methodSignature) == null)
-                        methodDetailsList.put(methodSignature, new ArrayList<String>());
-
-                    Iterator<Unit> i = body.getUnits().snapshotIterator();
-                    int id = 0;
-
-                    while (i.hasNext()) {
-                        if (methodSignature.contains("com.github.cetoolbox.fragments.tabs.ViscosityActivity$2"))
-                            System.out.println("Id: " + id);
-                        Stmt stmt = (Stmt) i.next();
-                        String stmtString = Integer.toString(id) + ":" + stmt.toString();
-                        methodDetailsList.get(methodSignature).add(stmtString);
-                        id = id + 1;
-                    }
+        if (app_select){
+            File outputDir = new File(outputApkspath);
+            if (outputDir.isDirectory()){
+                boolean success = true;
+                for(File f : outputDir.listFiles()){
+                    success = success && f.delete();
                 }
+                if(!success){
+                    System.err.println("Cleanup of output directory "+ outputDir + " failed!");
+                }
+                outputDir.delete();
+            }
+            processApks();
+        }
 
-                if (instrument == true || auto_instrument == true) {
-
-                    String hashMapKey = methodSignature;
-
-                    if (trainingData.containsKey(hashMapKey))
-                        instrumentationTAG = "TRAIN DATA";
-
-                    else if (testingData.containsKey(hashMapKey))
-                        instrumentationTAG = "TEST DATA";
-                    else
-                        instrumentationTAG = "NO INSTRUMENT";
+        else {
+            String package_name = InstrumentUtil.getPackageName(apkPath);
+            // Clean the outputPath
+            final File[] files = (new File(outputPath)).listFiles();
+            if (files != null && files.length > 0) {
+                Arrays.asList(files).forEach(File::delete);
+            }
+            // Initialize Soot
+            InstrumentUtil.setupSoot(androidJar, apkPath, outputPath);
 
 
-                    if (instrumentationTAG.equals("TEST DATA") || instrumentationTAG.equals("TRAIN DATA") || auto_instrument == true) {
+            // Add a transformation pack in order to add the statement "System.out.println(<content>) at the beginning of each Application method
+            PackManager.v().getPack("jtp").add(new Transform("jtp.myLogger", new BodyTransformer() {
+                @Override
+                protected void internalTransform(Body b, String phaseName, Map<String, String> options) {
+                    String instrumentationTAG;
 
-                        UnitPatchingChain units = body.getUnits();
-                        //List<Unit> generatedUnits = new ArrayList<>();
+                    // First we filter out Android framework methods
+                    if (InstrumentUtil.isAndroidMethod(b.getMethod()))
+                        return;
+
+                    JimpleBody body = (JimpleBody) b;
+
+                    String declaring_class = body.getMethod().getDeclaringClass().toString();
+                    String methodName = body.getMethod().getName();
+                    String methodSignature = body.getMethod().getSignature();
+
+
+                    if (!declaring_class.contains(package_name) || methodName.contains("init") || methodName.contains(".R"))
+                        return;
+
+
+                    if (dump) {
+
+                        if (methodDetailsList.get(methodSignature) == null)
+                            methodDetailsList.put(methodSignature, new ArrayList<String>());
 
                         Iterator<Unit> i = body.getUnits().snapshotIterator();
-                        Stmt firstNonIdentityStatement = body.getFirstNonIdentityStmt();
-
-                        boolean flag = false;
-                        double dbl_targetId;
-                        int targetId = -1;
                         int id = 0;
 
                         while (i.hasNext()) {
+                            if (methodSignature.contains("com.github.cetoolbox.fragments.tabs.ViscosityActivity$2"))
+                                System.out.println("Id: " + id);
                             Stmt stmt = (Stmt) i.next();
-
-                            if (auto_instrument == true) {
-                                if (stmt.toString().contains("openConnection()") || stmt.toString().contains("sendMessage()") || stmt.toString().contains("AdRequest()")) {
-                                    List<Unit> generatedUnits = generateInstrumentedString("auto", hashMapKey, body, Integer.toString(id));
-                                    units.insertBefore(generatedUnits, stmt);
-
-                                    if (instrumentationDetails.get(hashMapKey) == null)
-                                        instrumentationDetails.put(hashMapKey, new ArrayList<String>());
-
-                                    String stmtString = Integer.toString(id) + ":" + stmt.toString();
-                                    instrumentationDetails.get(hashMapKey).add(stmtString);
-                                }
-                            }
-                            else {
-
-                                if (stmt == firstNonIdentityStatement)
-                                    flag = true;
-
-                                if (trainingData.containsKey(hashMapKey)) {
-                                    targetId = Integer.parseInt(trainingData.get(hashMapKey));
-                                }
-
-                                if (testingData.containsKey(hashMapKey)) {
-                                    targetId = Integer.parseInt(testingData.get(hashMapKey));
-                                }
-
-                                if (id == targetId && flag == false) {
-                                    //System.out.println(firstNonIdentityStatement);
-                                    List<Unit> generatedUnits = generateInstrumentedString(instrumentationTAG, hashMapKey, body, Integer.toString(id));
-                                    units.insertBefore(generatedUnits, firstNonIdentityStatement);
-                                    break;
-                                }
-
-                                if (id == targetId && flag == true) {
-                                    //System.out.println(stmt);
-                                    List<Unit> generatedUnits = generateInstrumentedString(instrumentationTAG, hashMapKey, body, Integer.toString(id));
-                                    units.insertBefore(generatedUnits, stmt);
-                                    break;
-                                }
-                            }
-
+                            String stmtString = Integer.toString(id) + ":" + stmt.toString();
+                            methodDetailsList.get(methodSignature).add(stmtString);
                             id = id + 1;
                         }
+                    }
 
-                        // Validate the body to ensure that our code injection does not introduce any problem (at least statically)
-                        //System.out.println(b);
-                        b.validate();
+                    if (instrument == true || auto_instrument == true) {
 
+                        String hashMapKey = methodSignature;
+
+                        if (trainingData.containsKey(hashMapKey))
+                            instrumentationTAG = "TRAIN DATA";
+
+                        else if (testingData.containsKey(hashMapKey))
+                            instrumentationTAG = "TEST DATA";
+                        else
+                            instrumentationTAG = "NO INSTRUMENT";
+
+
+                        if (instrumentationTAG.equals("TEST DATA") || instrumentationTAG.equals("TRAIN DATA") || auto_instrument == true) {
+
+                            UnitPatchingChain units = body.getUnits();
+                            //List<Unit> generatedUnits = new ArrayList<>();
+
+                            Iterator<Unit> i = body.getUnits().snapshotIterator();
+                            Stmt firstNonIdentityStatement = body.getFirstNonIdentityStmt();
+
+                            boolean flag = false;
+                            double dbl_targetId;
+                            int targetId = -1;
+                            int id = 0;
+
+                            while (i.hasNext()) {
+                                Stmt stmt = (Stmt) i.next();
+
+                                if (auto_instrument == true) {
+                                    if (stmt.toString().contains("openConnection()") || stmt.toString().contains("sendMessage()") || stmt.toString().contains("AdRequest()")) {
+                                        List<Unit> generatedUnits = generateInstrumentedString("auto", hashMapKey, body, Integer.toString(id));
+                                        units.insertBefore(generatedUnits, stmt);
+
+                                        if (instrumentationDetails.get(hashMapKey) == null)
+                                            instrumentationDetails.put(hashMapKey, new ArrayList<String>());
+
+                                        String stmtString = Integer.toString(id) + ":" + stmt.toString();
+                                        instrumentationDetails.get(hashMapKey).add(stmtString);
+                                    }
+                                } else {
+
+                                    if (stmt == firstNonIdentityStatement)
+                                        flag = true;
+
+                                    if (trainingData.containsKey(hashMapKey)) {
+                                        targetId = Integer.parseInt(trainingData.get(hashMapKey));
+                                    }
+
+                                    if (testingData.containsKey(hashMapKey)) {
+                                        targetId = Integer.parseInt(testingData.get(hashMapKey));
+                                    }
+
+                                    if (id == targetId && flag == false) {
+                                        //System.out.println(firstNonIdentityStatement);
+                                        List<Unit> generatedUnits = generateInstrumentedString(instrumentationTAG, hashMapKey, body, Integer.toString(id));
+                                        units.insertBefore(generatedUnits, firstNonIdentityStatement);
+                                        break;
+                                    }
+
+                                    if (id == targetId && flag == true) {
+                                        //System.out.println(stmt);
+                                        List<Unit> generatedUnits = generateInstrumentedString(instrumentationTAG, hashMapKey, body, Integer.toString(id));
+                                        units.insertBefore(generatedUnits, stmt);
+                                        break;
+                                    }
+                                }
+
+                                id = id + 1;
+                            }
+
+                            // Validate the body to ensure that our code injection does not introduce any problem (at least statically)
+                            //System.out.println(b);
+                            b.validate();
+
+                        }
                     }
                 }
-            }
-        }));
-        // Run Soot packs (note that our transformer pack is added to the phase "jtp")
-        PackManager.v().runPacks();
-        // Write the result of packs in outputPath
-        PackManager.v().writeOutput();
-        if (dump)
-            jsonWriter(idFilePath, methodDetailsList);
+            }));
+            // Run Soot packs (note that our transformer pack is added to the phase "jtp")
+            PackManager.v().runPacks();
+            // Write the result of packs in outputPath
+            PackManager.v().writeOutput();
+            if (dump)
+                jsonWriter(idFilePath, methodDetailsList);
 
-        if (auto_instrument) {
-            String jsonFilePath = outputPath + File.separator + "/goals.json";
-            jsonWriter(jsonFilePath, instrumentationDetails);
+            if (auto_instrument) {
+                String jsonFilePath = outputPath + File.separator + "/goals.json";
+                jsonWriter(jsonFilePath, instrumentationDetails);
+            }
         }
     }
 
