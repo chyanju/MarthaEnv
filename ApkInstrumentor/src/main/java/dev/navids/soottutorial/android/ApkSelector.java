@@ -4,20 +4,27 @@ import org.apache.commons.io.FileUtils;
 import org.xmlpull.v1.XmlPullParserException;
 import soot.*;
 import soot.jimple.JimpleBody;
+import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
 import soot.jimple.infoflow.android.data.AndroidMethod;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
 import soot.jimple.infoflow.data.SootMethodAndClass;
+import soot.jimple.infoflow.methodSummary.data.provider.LazySummaryProvider;
+import soot.jimple.infoflow.methodSummary.taintWrappers.SummaryTaintWrapper;
 import soot.jimple.infoflow.results.InfoflowResults;
+import soot.jimple.infoflow.taintWrappers.ITaintPropagationWrapper;
+import soot.jimple.infoflow.taintWrappers.IdentityTaintWrapper;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
+import soot.jimple.toolkits.callgraph.ReachableMethods;
 import soot.jimple.toolkits.callgraph.TransitiveTargets;
 import soot.options.Options;
 import soot.util.dot.DotGraph;
 import soot.util.queue.QueueReader;
 
 import java.io.*;
+import java.net.URISyntaxException;
 import java.util.*;
 
 public class ApkSelector {
@@ -27,7 +34,7 @@ public class ApkSelector {
     static String androidDemoPath = System.getProperty("user.dir") + File.separator + "demo" + File.separator + "Android";
     static String dirpath;
     static String outputApkspath = USER_HOME + "/output";
-    static String[] sensitiveAPIs = {"openConnection()", "sendMessage", "AdRequest()", "javax.crypto", "javax.net.ssl", "sendTextMessage"};
+    static String[] sensitiveAPIs = {"openConnection()", "sendMessage", "AdRequest()", "javax.crypto", "javax.net.ssl", "sendTextMessage", "Log"};
     static boolean candidate;
 
     public static void main(String[] args) throws IOException {
@@ -134,17 +141,37 @@ public class ApkSelector {
         config.getAnalysisFileConfig().setAndroidPlatformDir(androidJar);
         config.getAnalysisFileConfig().setTargetAPKFile(fileName);
         config.setEnableReflection(true);
-        //config.getIccConfig();
+        config.getIccConfig().setIccModel("/home/priyanka/research/projects/FlowDroid/soot-infoflow-android/iccta_testdata_ic3_results/edu.mit.icc_intent_component_name_1.txt");
+        config.setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
+        config.setImplicitFlowMode(InfoflowConfiguration.ImplicitFlowMode.AllImplicitFlows);
         config.setMergeDexFiles(true);
-        Options.v().set_output_dir(outputApkspath);
+        SummaryTaintWrapper wrap = null;
+
+        try {
+            wrap = new SummaryTaintWrapper(new LazySummaryProvider("summariesManual"));
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         SetupApplication analyzer = new SetupApplication(config);
-        analyzer.constructCallgraph();
-        drawCallGraph(Scene.v().getCallGraph());
-        checkForSensitiveAPIs(fileName, analyzer);
+        analyzer.setTaintWrapper(wrap);
+
+        InfoflowResults res1 = null;
+        try {
+            res1 = analyzer.runInfoflow("/home/priyanka/research/projects/FlowDroid/soot-infoflow-android/SourcesAndSinks.txt");
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (XmlPullParserException e) {
+            e.printStackTrace();
+        }
+        //analyzer.constructCallgraph();
+
+        checkForSensitiveAPIs(fileName, analyzer, res1);
     }
 
-    private static void drawCallGraph(CallGraph callGraph){
+    private static DotGraph drawCallGraph(CallGraph callGraph){
         DotGraph dot = new DotGraph("callgraph");
         Iterator<Edge> iteratorEdges = callGraph.iterator();
 
@@ -159,12 +186,13 @@ public class ApkSelector {
         }
 
         dot.plot("/home/priyanka/Downloads/callgraph.dot");
+        return dot;
     }
 
-    private static void checkForSensitiveAPIs(String fileName, SetupApplication analyzer) {
+    private static void checkForSensitiveAPIs(String fileName, SetupApplication analyzer, InfoflowResults res1) {
         QueueReader<MethodOrMethodContext> qr = Scene.v().getReachableMethods().listener();
-        ArrayList<AndroidMethod> allMethods = new ArrayList<>();
-        ArrayList<AndroidMethod> onCreateMethods = new ArrayList<>();
+        ArrayList<MethodOrMethodContext> allMethods = new ArrayList<>();
+        ArrayList<MethodOrMethodContext> onCreateMethods = new ArrayList<>();
 
         while (qr.hasNext()) {
             SootMethod meth = (SootMethod) qr.next();
@@ -173,34 +201,67 @@ public class ApkSelector {
 
                 for (final String apiName : sensitiveAPIs) {
                     if (body.contains(apiName)) {
-                        allMethods.add(AndroidMethod.createFromSignature(meth.getSignature()));
-                        System.out.println("Sensitive API: " + meth.getSignature());
+                        //allMethods.add(AndroidMethod.createFromSignature(meth.getSignature()));
+                        allMethods.add(meth);
+                        //System.out.println("Sensitive API: " + meth.getSignature());
                     }
                 }
             }
         }
-        CallGraph cg = Scene.v().getCallGraph();
+
         List<SootClass> entrypoints = new ArrayList<>(analyzer.getEntrypointClasses());
 
         for (SootClass entrylass : entrypoints) {
             SootMethod createMeth = entrylass.getMethodByName("onCreate");
-            onCreateMethods.add(AndroidMethod.createFromSignature(createMeth.getSignature()));
-            System.out.println("Entry point: " + createMeth.getSignature());
+            //onCreateMethods.add(AndroidMethod.createFromSignature(createMeth.getSignature()));
+            onCreateMethods.add(createMeth);
+            //System.out.println("Entry point: " + createMeth.getSignature());
         }
 
+        CallGraph cg = Scene.v().getCallGraph();
+        // DotGraph dot =  drawCallGraph(cg);
+
+        boolean isReachable = true;
+        for (MethodOrMethodContext method: onCreateMethods) {
+            List<MethodOrMethodContext> m = new ArrayList<>();
+            m.add(method);
+            ReachableMethods rm = new ReachableMethods(cg, m);
+            rm.update();
+
+            for (MethodOrMethodContext sm: allMethods){
+                if (rm.contains(sm)){
+                    isReachable = true;
+                    //System.out.println("From: " + method.method().getSignature() + " To : " + sm.method().getSignature());
+                }
+                else {
+                    //System.out.println("From: " + method.method().getSignature() + " To : " + sm.method().getSignature());
+                    isReachable = false;
+                    break;
+                }
+            }
+
+            if (isReachable == false)
+                break;
+        }
+
+        /*
         Set<AndroidMethod> sources = new HashSet<>(onCreateMethods);
         Set<AndroidMethod> targets = new HashSet<>(allMethods);
 
         InfoflowResults res = null;
         try {
             res = analyzer.runInfoflow(sources, targets);
+
         } catch (IOException e) {
             e.printStackTrace();
         } catch (XmlPullParserException e) {
             e.printStackTrace();
         }
+        */
 
-        if (res.isEmpty()) {
+
+        if (isReachable == false) {
+            System.out.println("Yes");
             File source = new File(fileName);
             File dest = new File(outputApkspath);
             try {
