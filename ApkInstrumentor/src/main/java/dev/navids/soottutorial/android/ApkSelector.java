@@ -1,5 +1,6 @@
 package dev.navids.soottutorial.android;
 
+import org.apache.commons.io.FileUtils;
 import org.xmlpull.v1.XmlPullParserException;
 import soot.*;
 import soot.jimple.JimpleBody;
@@ -12,6 +13,7 @@ import soot.jimple.infoflow.results.InfoflowResults;
 import soot.jimple.toolkits.callgraph.CallGraph;
 import soot.jimple.toolkits.callgraph.Edge;
 import soot.jimple.toolkits.callgraph.TransitiveTargets;
+import soot.options.Options;
 import soot.util.dot.DotGraph;
 import soot.util.queue.QueueReader;
 
@@ -131,10 +133,10 @@ public class ApkSelector {
         InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
         config.getAnalysisFileConfig().setAndroidPlatformDir(androidJar);
         config.getAnalysisFileConfig().setTargetAPKFile(fileName);
-        config.getAnalysisFileConfig().setOutputFile(outputApkspath);
         config.setEnableReflection(true);
         //config.getIccConfig();
         config.setMergeDexFiles(true);
+        Options.v().set_output_dir(outputApkspath);
 
         SetupApplication analyzer = new SetupApplication(config);
         analyzer.constructCallgraph();
@@ -199,9 +201,14 @@ public class ApkSelector {
         }
 
         if (res.isEmpty()) {
-            System.out.println("I am here");
-            PackManager.v().runPacks();
-            PackManager.v().writeOutput();
+            File source = new File(fileName);
+            File dest = new File(outputApkspath);
+            try {
+                dest.mkdir();
+                FileUtils.copyFileToDirectory(source, dest);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
     }
