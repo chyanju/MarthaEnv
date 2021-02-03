@@ -66,6 +66,10 @@ public class ApkSelector {
                 outputDir.delete();
             }
 
+            outputDir.mkdir();
+            File dest = new File(ic3OutPath);
+            dest.mkdir();
+
             dirpath = args[1];
             outputApkspath = args[2];
             processApks();
@@ -128,9 +132,14 @@ public class ApkSelector {
             else
                 fullFilePath = fileName;
 
-            // Run the analysis
-            runIC3(fullFilePath);
-            runAnalysis(fullFilePath, androidJar);
+            try {
+                // Run the analysis
+                runIC3(fullFilePath);
+                runAnalysis(fullFilePath, androidJar);
+            }catch (Exception e){
+                System.out.println("Error");
+            }
+
             //checkSensitiveApis(fullFilePath);
 
             System.gc();
@@ -199,13 +208,14 @@ public class ApkSelector {
     private static void runAnalysis(final String fileName, final String androidJar) {
         final long beforeRun = System.nanoTime();
         final File[] files = (new File(ic3OutPath)).listFiles();
-        //System.out.println(files[0].getPath());
+
 
         InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
         config.getAnalysisFileConfig().setAndroidPlatformDir(androidJar);
         config.getAnalysisFileConfig().setTargetAPKFile(fileName);
         config.setEnableReflection(true);
-        config.getIccConfig().setIccModel(files[0].getPath());
+        if (files.length > 0)
+            config.getIccConfig().setIccModel(files[0].getPath());
         config.setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
         config.setImplicitFlowMode(InfoflowConfiguration.ImplicitFlowMode.AllImplicitFlows);
         config.setMergeDexFiles(true);
@@ -328,7 +338,7 @@ public class ApkSelector {
             File source = new File(fileName);
             File dest = new File(outputApkspath);
             try {
-                dest.mkdir();
+                //dest.mkdir();
                 FileUtils.copyFileToDirectory(source, dest);
             } catch (IOException e) {
                 e.printStackTrace();
