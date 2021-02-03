@@ -26,16 +26,19 @@ import soot.util.queue.QueueReader;
 import java.io.*;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class ApkSelector {
 
     private final static String USER_HOME = System.getProperty("user.home");
     private static String androidJar = USER_HOME + "/Library/Android/sdk/platforms";
     static String androidDemoPath = System.getProperty("user.dir") + File.separator + "demo" + File.separator + "Android";
+    static String ic3OutPath = USER_HOME + "/tmp_ic3_out";
+    static String libPath = System.getProperty("user.dir") + File.separator + "lib";
+
     static String dirpath;
     static String outputApkspath = USER_HOME + "/output";
     static String[] sensitiveAPIs = {"openConnection()", "sendMessage", "AdRequest()", "javax.crypto", "javax.net.ssl", "sendTextMessage", "Log"};
-    static boolean candidate;
 
     public static void main(String[] args) throws IOException {
         if (System.getenv().containsKey("ANDROID_HOME"))
@@ -126,6 +129,7 @@ public class ApkSelector {
                 fullFilePath = fileName;
 
             // Run the analysis
+            runIC3(fullFilePath);
             runAnalysis(fullFilePath, androidJar);
             //checkSensitiveApis(fullFilePath);
 
@@ -134,14 +138,74 @@ public class ApkSelector {
 
     }
 
+    private static void runIC3(final String apkPath)
+    {
+        // Clean the outputPath
+        final File[] files = (new File(ic3OutPath)).listFiles();
+        if (files != null && files.length > 0) {
+            Arrays.asList(files).forEach(File::delete);
+        }
+
+        String scriptpath = System.getProperty("user.dir") + "/src/main/java/dev/navids/soottutorial/android/runIc3.sh";
+        String retargaterJar = libPath + "/RetargetedApp.jar";
+        String androidJar = libPath + "/android.jar";
+        String ic3Jar = libPath + "/ic3-0.2.0-full.jar";
+
+        try {
+            ProcessBuilder pb = new ProcessBuilder("sh", scriptpath, apkPath, ic3OutPath, retargaterJar, androidJar, ic3Jar);
+            pb.directory(new File(ic3OutPath));
+            Process p = pb.start();
+            BufferedReader stdInput = new BufferedReader(new
+                    InputStreamReader(p.getInputStream()));
+
+            BufferedReader stdError = new BufferedReader(new
+                    InputStreamReader(p.getErrorStream()));
+            StringBuffer response = new StringBuffer();
+            StringBuffer errorStr = new StringBuffer();
+            boolean alreadyWaited = false;
+            while (p.isAlive()) {
+                try {
+                    if(alreadyWaited) {
+
+                        // read the output from the command because
+                        //if we don't then the buffers fill up and
+                        //the command stops and doesn't return
+                        String temp;
+
+                        while ((temp = stdInput.readLine()) != null) {
+                            response.append(temp);
+                        }
+
+
+                        String errTemp;
+                        while ((errTemp = stdError.readLine()) != null) {
+                            errorStr.append(errTemp);
+                        }
+                    }
+                    Thread.sleep(1000);
+                    alreadyWaited = true;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                //System.out.println("Response is " + response);
+                //System.out.println("Error is: " + errorStr);
+            }
+
+        } catch (IOException e) {
+                System.out.println("Hello");
+        }
+
+    }
     private static void runAnalysis(final String fileName, final String androidJar) {
         final long beforeRun = System.nanoTime();
+        final File[] files = (new File(ic3OutPath)).listFiles();
+        //System.out.println(files[0].getPath());
 
         InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
         config.getAnalysisFileConfig().setAndroidPlatformDir(androidJar);
         config.getAnalysisFileConfig().setTargetAPKFile(fileName);
         config.setEnableReflection(true);
-        config.getIccConfig().setIccModel("/home/priyanka/research/projects/FlowDroid/soot-infoflow-android/iccta_testdata_ic3_results/edu.mit.icc_intent_component_name_1.txt");
+        config.getIccConfig().setIccModel(files[0].getPath());
         config.setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
         config.setImplicitFlowMode(InfoflowConfiguration.ImplicitFlowMode.AllImplicitFlows);
         config.setMergeDexFiles(true);
@@ -261,7 +325,6 @@ public class ApkSelector {
 
 
         if (isReachable == false) {
-            System.out.println("Yes");
             File source = new File(fileName);
             File dest = new File(outputApkspath);
             try {
