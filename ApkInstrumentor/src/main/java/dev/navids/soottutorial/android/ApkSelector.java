@@ -234,7 +234,8 @@ public class ApkSelector {
 
         InfoflowResults res1 = null;
         try {
-            res1 = analyzer.runInfoflow("/home/priyanka/research/projects/FlowDroid/soot-infoflow-android/SourcesAndSinks.txt");
+            String source_sink_file = System.getProperty("user.dir") + "/SourcesAndSinks.txt";
+            res1 = analyzer.runInfoflow(source_sink_file);
         } catch (IOException e) {
             e.printStackTrace();
         } catch (XmlPullParserException e) {
