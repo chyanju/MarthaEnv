@@ -137,7 +137,7 @@ public class ApkSelector {
                 runIC3(fullFilePath);
                 runAnalysis(fullFilePath, androidJar);
             }catch (Exception e){
-                System.out.println("Error");
+                e.printStackTrace();
             }
 
             //checkSensitiveApis(fullFilePath);
