@@ -1,5 +1,5 @@
 package dev.navids.soottutorial.android;
-
+import org.apache.commons.io.comparator.SizeFileComparator;
 import org.apache.commons.io.FileUtils;
 import org.xmlpull.v1.XmlPullParserException;
 import soot.*;
@@ -42,7 +42,7 @@ public class ApkSelector {
 
     static String dirpath;
     static String outputApkspath = USER_HOME + "/output";
-    static String[] sensitiveAPIs = {"openConnection()", "sendMessage", "AdRequest()", "javax.crypto", "javax.net.ssl", "sendTextMessage"};
+    static String[] sensitiveAPIs = {"openConnection()", "AdRequest()", "javax.crypto", "javax.net.ssl", "sendTextMessage"};
 
     private static void fileWrited(int totalApks, int analyzedApks, int erroredApks, int timedOutApks){
         try {
@@ -104,19 +104,24 @@ public class ApkSelector {
         File apkFile = new File(dirpath);
 
         if (apkFile.isDirectory()) {
-            String[] dirFiles = apkFile.list(new FilenameFilter() {
+            FilenameFilter filter = new FilenameFilter() {
 
                 @Override
                 public boolean accept(File dir, String name) {
                     return (name.endsWith(".apk"));
                 }
 
-            });
+            };
 
-            for (String s : dirFiles)
-                apkFiles.add(s);
+            File[] files = apkFile.listFiles(filter);
+            Arrays.sort(files, SizeFileComparator.SIZE_COMPARATOR);
 
-        } else {
+            for (int i = 0; i < files.length; i++) {
+                apkFiles.add(files[i].getName());
+                //System.out.println("Size: " + files[i].length());
+            }
+
+        }else {
             //apk is a file so grab the extension
             String extension = apkFile.getName().substring(apkFile.getName().lastIndexOf("."));
 
@@ -136,6 +141,7 @@ public class ApkSelector {
                 return;
             }
         }
+
 
         int totalApks = apkFiles.size();
         int erroredOutApks = 0;
@@ -315,7 +321,7 @@ public class ApkSelector {
             dot.drawEdge(node_src, node_tgt);
         }
 
-        dot.plot("/home/priyanka/Downloads/callgraph.dot");
+        //dot.plot("/home/priyanka/Downloads/callgraph.dot");
         return dot;
     }
 
