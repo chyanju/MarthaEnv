@@ -25,8 +25,9 @@ import soot.util.queue.QueueReader;
 
 import java.io.*;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class ApkSelector {
 
@@ -38,7 +39,22 @@ public class ApkSelector {
 
     static String dirpath;
     static String outputApkspath = USER_HOME + "/output";
-    static String[] sensitiveAPIs = {"openConnection()", "sendMessage", "AdRequest()", "javax.crypto", "javax.net.ssl", "sendTextMessage", "Log"};
+    static String[] sensitiveAPIs = {"openConnection()", "sendMessage", "AdRequest()", "javax.crypto", "javax.net.ssl", "sendTextMessage"};
+
+    private static void fileWrited(int totalApks, int analyzedApks, int erroredApks, int timedOutApks){
+        try {
+            String filePath = outputApkspath + "/stats.txt";
+            FileWriter myWriter = new FileWriter(filePath);
+            myWriter.write("Out of " + totalApks + " apks, analyzed apks are " + analyzedApks);
+            myWriter.write("\nErrored out apks: " + erroredApks);
+            myWriter.write("\nTimed out apks: " + timedOutApks);
+            myWriter.close();
+            System.out.println("Successfully wrote to the file.");
+        } catch (IOException e) {
+            System.out.println("An error occurred.");
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) throws IOException {
         if (System.getenv().containsKey("ANDROID_HOME"))
@@ -78,6 +94,8 @@ public class ApkSelector {
 
     }
 
+
+
     public static void processApks() throws IOException {
         List<String> apkFiles = new ArrayList<String>();
         File apkFile = new File(dirpath);
@@ -116,6 +134,11 @@ public class ApkSelector {
             }
         }
 
+        int totalApks = apkFiles.size();
+        int erroredOutApks = 0;
+        int timedOutApks = 0;
+        int analyzedApks = 0;
+
         for (final String fileName : apkFiles) {
             final String fullFilePath;
             System.gc();
@@ -132,20 +155,51 @@ public class ApkSelector {
             else
                 fullFilePath = fileName;
 
+            final Duration timeout = Duration.ofSeconds(1800);
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+
+            final Future<String> handler = executor.submit(new Callable() {
+                @Override
+                public String call() throws Exception {
+                    analyzeApk(fullFilePath);
+                    return "completed";
+                }
+            });
+
             try {
-                // Run the analysis
-                runIC3(fullFilePath);
-                runAnalysis(fullFilePath, androidJar);
-            }catch (Exception e){
+                handler.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            } catch (TimeoutException e) {
+                handler.cancel(true);
+                System.out.println("Time out has reached, move on to the next apk");
+                timedOutApks = timedOutApks + 1;
+
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+                erroredOutApks = erroredOutApks + 1;
+            } catch (ExecutionException e) {
+                erroredOutApks = erroredOutApks + 1;
                 e.printStackTrace();
             }
 
-            //checkSensitiveApis(fullFilePath);
-
+            executor.shutdownNow();
+            analyzedApks = analyzedApks + 1;
+            fileWrited(totalApks, analyzedApks, erroredOutApks, timedOutApks);
             System.gc();
         }
 
     }
+
+    private static void analyzeApk(final String fullFilePath){
+        try {
+            // Run the analysis
+            runIC3(fullFilePath);
+            runAnalysis(fullFilePath, androidJar);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+    }
+
 
     private static void runIC3(final String apkPath)
     {
@@ -233,17 +287,13 @@ public class ApkSelector {
         analyzer.setTaintWrapper(wrap);
 
         InfoflowResults res1 = null;
-        try {
-            String source_sink_file = System.getProperty("user.dir") + "/SourcesAndSinks.txt";
-            res1 = analyzer.runInfoflow(source_sink_file);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (XmlPullParserException e) {
-            e.printStackTrace();
-        }
-        //analyzer.constructCallgraph();
 
-        checkForSensitiveAPIs(fileName, analyzer, res1);
+        String source_sink_file = System.getProperty("user.dir") + "/SourcesAndSinks.txt";
+        analyzer.constructCallgraph();
+
+        //analyzer.constructCallgraph();
+        drawCallGraph(Scene.v().getCallGraph());
+        checkForSensitiveAPIs(fileName, analyzer);
     }
 
     private static DotGraph drawCallGraph(CallGraph callGraph){
@@ -264,7 +314,7 @@ public class ApkSelector {
         return dot;
     }
 
-    private static void checkForSensitiveAPIs(String fileName, SetupApplication analyzer, InfoflowResults res1) {
+    private static void checkForSensitiveAPIs(String fileName, SetupApplication analyzer) {
         QueueReader<MethodOrMethodContext> qr = Scene.v().getReachableMethods().listener();
         ArrayList<MethodOrMethodContext> allMethods = new ArrayList<>();
         ArrayList<MethodOrMethodContext> onCreateMethods = new ArrayList<>();
@@ -278,12 +328,13 @@ public class ApkSelector {
                     if (body.contains(apiName)) {
                         //allMethods.add(AndroidMethod.createFromSignature(meth.getSignature()));
                         allMethods.add(meth);
-                        //System.out.println("Sensitive API: " + meth.getSignature());
+                        //System.out.println("Sensitive API: " + apiName + " Method signature: " + meth.getSignature());
                     }
                 }
             }
         }
 
+        Map<String, String> allMethodsRechability = new HashMap<>();
         List<SootClass> entrypoints = new ArrayList<>(analyzer.getEntrypointClasses());
 
         for (SootClass entrylass : entrypoints) {
@@ -294,29 +345,67 @@ public class ApkSelector {
         }
 
         CallGraph cg = Scene.v().getCallGraph();
-        // DotGraph dot =  drawCallGraph(cg);
 
         boolean isReachable = true;
         for (MethodOrMethodContext method: onCreateMethods) {
             List<MethodOrMethodContext> m = new ArrayList<>();
             m.add(method);
-            ReachableMethods rm = new ReachableMethods(cg, m);
-            rm.update();
 
-            for (MethodOrMethodContext sm: allMethods){
-                if (rm.contains(sm)){
-                    isReachable = true;
-                    //System.out.println("From: " + method.method().getSignature() + " To : " + sm.method().getSignature());
-                }
-                else {
-                    //System.out.println("From: " + method.method().getSignature() + " To : " + sm.method().getSignature());
-                    isReachable = false;
-                    break;
+
+            Iterator<Edge> allEdges = cg.edgesInto(method);
+            SootMethod mainMethod = null;
+
+            while (allEdges.hasNext()) {
+                Edge edge = allEdges.next();
+
+                if (edge.getSrc().method().getSignature().contains("android.content.Intent") && edge.getSrc().method().getSignature().contains("dummyMainMethod")) {
+                    mainMethod = edge.getSrc().method();
                 }
             }
 
-            if (isReachable == false)
-                break;
+            if (mainMethod != null)
+                m.add(mainMethod);
+
+            //System.out.println(m);
+            ReachableMethods rm = new ReachableMethods(cg, m);
+            rm.update();
+
+            /*
+            List<MethodOrMethodContext> rechableMethods = new ArrayList<>();
+            rechableMethods.add(method);
+
+            List<MethodOrMethodContext> visited_methods = new ArrayList<>();
+
+            while(m.size() > 0) {
+                Iterator<Edge> allEdges = cg.edgesOutOf(m.get(0));
+                m.remove(0);
+
+                while (allEdges.hasNext()) {
+                    Edge edge = allEdges.next();
+                    rechableMethods.add(edge.getTgt());
+
+                    if (!visited_methods.contains(edge.getTgt())) {
+                        m.add(edge.getTgt());
+                        visited_methods.add(edge.getTgt());
+                    }
+                }
+
+            }*/
+
+
+            for (MethodOrMethodContext sm: allMethods){
+                if (rm.contains(sm)){
+                    allMethodsRechability.put(sm.method().getSignature(), "yes");
+                }
+            }
+
+        }
+
+        for (MethodOrMethodContext sm: allMethods){
+            if (!allMethodsRechability.containsKey(sm.method().getSignature())){
+                isReachable = false;
+                System.out.println("To: " + sm.method().getSignature());
+            }
         }
 
         /*
@@ -337,6 +426,7 @@ public class ApkSelector {
 
         if (isReachable == false) {
             File source = new File(fileName);
+            //System.out.println("Out put path: " + outputApkspath);
             File dest = new File(outputApkspath);
             try {
                 //dest.mkdir();
