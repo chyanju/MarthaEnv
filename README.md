@@ -18,6 +18,9 @@ Static Analysis Guided Interactive Environment for Android
   * `./gradlew run --args="AndroidLogger auto_instrument /path/to/app.apk"`
   * instrumented apk will be stored in : `ApkInstrumentor/demo/Android/Instrumented/app.apk`
 
+### Auto instrument using builtin jar
+  * `cd ApkInstrumemtor && java -cp build/libs/CombinedJar-all.jar dev.navids.soottutorial.Main AndroidLogger auto_instrument /path/to/app.apk`
+
 ### Sign and install the apk
   * `cd ApkInstrumentor/demo/Android`
   * `./sign.sh path/to/instrumented.apk key "android"`
