@@ -209,10 +209,12 @@ public class ApkSelector {
             Arrays.asList(files).forEach(File::delete);
         }
 
+        System.out.println(libPath);
         String scriptpath = System.getProperty("user.dir") + "/src/main/java/dev/navids/soottutorial/android/runIc3.sh";
         String retargaterJar = libPath + "/RetargetedApp.jar";
         String androidJar = libPath + "/android.jar";
         String ic3Jar = libPath + "/ic3-0.2.0-full.jar";
+        
 
         try {
             ProcessBuilder pb = new ProcessBuilder("sh", scriptpath, apkPath, ic3OutPath, retargaterJar, androidJar, ic3Jar);
@@ -310,7 +312,7 @@ public class ApkSelector {
             dot.drawEdge(node_src, node_tgt);
         }
 
-        dot.plot("/home/priyanka/Downloads/callgraph.dot");
+        //dot.plot("/home/priyanka/Downloads/callgraph.dot");
         return dot;
     }
 
@@ -401,6 +403,7 @@ public class ApkSelector {
 
         }
 
+        //System.out.println(allMethodsRechability);
         for (MethodOrMethodContext sm: allMethods){
             if (!allMethodsRechability.containsKey(sm.method().getSignature())){
                 isReachable = false;
