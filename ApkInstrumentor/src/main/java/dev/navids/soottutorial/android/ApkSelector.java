@@ -7,6 +7,9 @@ import soot.jimple.JimpleBody;
 import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
+import soot.jimple.infoflow.android.axml.AXmlAttribute;
+import soot.jimple.infoflow.android.axml.AXmlHandler;
+import soot.jimple.infoflow.android.axml.AXmlNode;
 import soot.jimple.infoflow.android.data.AndroidMethod;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
 import soot.jimple.infoflow.data.SootMethodAndClass;
@@ -214,7 +217,7 @@ public class ApkSelector {
         String retargaterJar = libPath + "/RetargetedApp.jar";
         String androidJar = libPath + "/android.jar";
         String ic3Jar = libPath + "/ic3-0.2.0-full.jar";
-        
+
 
         try {
             ProcessBuilder pb = new ProcessBuilder("sh", scriptpath, apkPath, ic3OutPath, retargaterJar, androidJar, ic3Jar);
@@ -312,10 +315,73 @@ public class ApkSelector {
             dot.drawEdge(node_src, node_tgt);
         }
 
-        //dot.plot("/home/priyanka/Downloads/callgraph.dot");
+        dot.plot("/home/priyanka/Downloads/callgraph.dot");
         return dot;
     }
 
+    public static String getMainActivityName(String apkFileLocation) {
+        String mainActivityName = null;
+
+            ProcessManifest pm = null;
+            try {
+                pm = new ProcessManifest(apkFileLocation);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (XmlPullParserException e) {
+                e.printStackTrace();
+            }
+            AXmlHandler axmlh = pm.getAXml();
+            // Find main activity and remove main intent-filter
+            List<AXmlNode> anodes = axmlh.getNodesWithTag("activity");
+            for (AXmlNode an : anodes) {
+                boolean hasMain = false;
+                boolean hasLauncher = false;
+                AXmlNode filter = null;
+                AXmlAttribute aname = an.getAttribute("name");
+                String aval = (String) aname.getValue();
+                //System.out.println("activity: " + aval);
+
+                List<AXmlNode> fnodes = an.getChildrenWithTag("intent-filter");
+                for (AXmlNode fn : fnodes) {
+                    hasMain = false;
+                    hasLauncher = false;
+                    // check action
+                    List<AXmlNode> acnodes = fn.getChildrenWithTag("action");
+                    for (AXmlNode acn : acnodes) {
+                        AXmlAttribute acname = acn.getAttribute("name");
+                        String acval = (String) acname.getValue();
+                        //System.out.println("action: " + acval);
+                        if (acval.equals("android.intent.action.MAIN")) {
+                            hasMain = true;
+                        }
+                    }
+                    // check category
+                    List<AXmlNode> catnodes = fn.getChildrenWithTag("category");
+                    for (AXmlNode catn : catnodes) {
+                        AXmlAttribute catname = catn.getAttribute("name");
+                        String catval = (String) catname.getValue();
+                        //System.out.println("category: " + catval);
+                        if (catval.equals("android.intent.category.LAUNCHER")) {
+                            hasLauncher = true;
+                            filter = fn;
+                        }
+                    }
+                    if (hasLauncher && hasMain) {
+                        break;
+                    }
+                }
+                if (hasLauncher && hasMain) {
+                    // replace name with the activity waiting for the connection to the PDP
+                    //System.out.println("main activity is: " + aval);
+                    //System.out.println("excluding filter: " + filter);
+                    filter.exclude();
+                    mainActivityName = aval;
+                    break;
+                }
+            }
+        //mainActivityName = pm.getPackageName() + mainActivityName;
+        return mainActivityName;
+    }
     private static void checkForSensitiveAPIs(String fileName, SetupApplication analyzer) {
         QueueReader<MethodOrMethodContext> qr = Scene.v().getReachableMethods().listener();
         ArrayList<MethodOrMethodContext> allMethods = new ArrayList<>();
@@ -339,15 +405,22 @@ public class ApkSelector {
         Map<String, String> allMethodsRechability = new HashMap<>();
         List<SootClass> entrypoints = new ArrayList<>(analyzer.getEntrypointClasses());
 
+        String mainActivityName = getMainActivityName(fileName);
+        //System.out.println("Main activity: " + mainActivityName);
+
         for (SootClass entrylass : entrypoints) {
             SootMethod createMeth = entrylass.getMethodByName("onCreate");
+            //System.out.println(createMeth.getSignature());
+            //System.out.println(mainActivityName);
             //onCreateMethods.add(AndroidMethod.createFromSignature(createMeth.getSignature()));
-            onCreateMethods.add(createMeth);
+            if (createMeth.getSignature().contains(mainActivityName))
+                onCreateMethods.add(createMeth);
             //System.out.println("Entry point: " + createMeth.getSignature());
         }
 
         CallGraph cg = Scene.v().getCallGraph();
 
+        //System.out.println(onCreateMethods);
         boolean isReachable = true;
         for (MethodOrMethodContext method: onCreateMethods) {
             List<MethodOrMethodContext> m = new ArrayList<>();
@@ -356,6 +429,7 @@ public class ApkSelector {
 
             Iterator<Edge> allEdges = cg.edgesInto(method);
             SootMethod mainMethod = null;
+
 
             while (allEdges.hasNext()) {
                 Edge edge = allEdges.next();
@@ -367,6 +441,8 @@ public class ApkSelector {
 
             if (mainMethod != null)
                 m.add(mainMethod);
+
+            //System.out.println(mainMethod.getSignature());
 
             //System.out.println(m);
             ReachableMethods rm = new ReachableMethods(cg, m);
@@ -398,6 +474,7 @@ public class ApkSelector {
             for (MethodOrMethodContext sm: allMethods){
                 if (rm.contains(sm)){
                     allMethodsRechability.put(sm.method().getSignature(), "yes");
+                    //sSystem.out.println("From: " + method.method().getSignature() + " To: " + sm.method().getSignature());
                 }
             }
 
