@@ -25,6 +25,7 @@ from lib.helper import *
 import argparse
 import multiprocessing
 import traceback
+import glob
 
 '''
 =======================
@@ -52,10 +53,10 @@ from apk import Apk
 CPU_CORES = 2
 
 
-def analyze_apk(apk):
+def analyze_apk(apk, gatordir, client_name):
     info("Analysis started: %s" % os.path.basename(apk))
     apk_base_name = os.path.splitext(os.path.basename(apk))[0]
-    result_dir = os.path.join(RESULT_DIR, apk_base_name)
+    result_dir = os.path.join(RESULT_DIR, 'static_output', apk_base_name)
 
     if os.path.exists(result_dir):
         rmtree(result_dir)
@@ -64,6 +65,7 @@ def analyze_apk(apk):
         os.makedirs(result_dir, exist_ok=True)
 
     log_path = os.path.join(result_dir, 'analysis.log')
+    analysis_console_output_path = os.path.join(result_dir, "console_output.log")
     log = init_logging('analyzer.%s' % apk_base_name, log_path, file_mode='w', console=True)
 
     # Record analysis start time
@@ -74,15 +76,20 @@ def analyze_apk(apk):
 
     #if os.path.exists(apk_obj_filepath):
     try:
-        apk_obj = Apk(apk, result_dir, log)
-        callgraph = apk_obj.get_callgraph()
-        sensitive_methods = apk_obj.get_sensitive_api_methods()
+        gator_executable = os.path.join(gatordir, "gator")
+        cmd = ['python3', gator_executable, 'a', '-p %s' % apk, '-o %s' % result_dir, '-client %s' % client_name]
+        cmd.extend(['>>', analysis_console_output_path, '2>&1'])
+        cmd_string = ' '.join(filter(lambda x: x != '', cmd))
+        status_code = os.system(cmd_string)
+        info("Status code: %d" % status_code)
+        log.info("Status code: %d" % status_code)
 
     except:
         traceback.print_exc()
         log.warning("Analysis for %s errored out" % apk_base_name)
 
     # Record analysis duration
+
     end_time = time.time()
     analysis_duration = end_time - start_time
     info('Analysis took %f seconds' % analysis_duration)
@@ -97,46 +104,24 @@ def analyze_apk(apk):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Analyzes apk files")
-    parser.add_argument("--apk", "-a", dest="apk", help="The path to the apk or the directory containing apk")
+    parser.add_argument("--app-dir", "-a", dest="appdir", help="The path to the apk or the directory containing apk")
+    parser.add_argument("--gator-dir", "-g", dest="gatordir", help="The path to the input directory to gator")
+    parser.add_argument("--client-name", "-c", dest="client", help="The name of the client to run with gator")
     parser.add_argument("--output", "-o", dest="output", help="The path to the output directory")
 
     args = parser.parse_args()
 
 
-    if args.apk is not None:
-        APK_PATH = args.apk
+    if args.appdir is not None:
+        APK_PATH = args.appdir
 
     apkfiles = []
-
-    if os.path.isdir(APK_PATH):
-        for path, subdirs, files in os.walk(APK_PATH):
-            for x in files:
-                apkfiles.append(os.path.join(APK_PATH, x))
-    else:
-        custom_apkpath = APK_PATH
-        apkfiles.append(custom_apkpath)
-
+    glob_pattern = args.appdir + "/*.apk"
+    apk = glob.glob(glob_pattern)[0]
 
     if args.output is not None:
         RESULT_DIR = args.output
 
-
-    apks_to_be_analyzed = []
-    for apk in apkfiles:
-        apks_to_be_analyzed.append(apk)
+    analyze_apk(apk, args.gatordir, args.client)
 
 
-    # Analyze the apks using mutiprocessing pool if number of apks
-    # is more than one
-    if len(apkfiles) > 1:
-        cpu_count = int(CPU_CORES)
-        with multiprocessing.Pool(cpu_count) as pool:
-            pool.map(analyze_apk, apks_to_be_analyzed)
-
-        pool.join()
-
-    else:
-        analyze_apk(apkfiles[0])
-
-    
-    ## apk callback extraction
