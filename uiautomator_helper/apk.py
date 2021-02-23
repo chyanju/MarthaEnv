@@ -36,6 +36,8 @@ class Apk:
         self.apk_path = apk_path
         self.uiautomator_device = uiautomator_device
         self.apk = None
+        self.current_state = None
+        self.current_available_actions = []
         self.log = log
         self.logging = True
         self.debug = []
@@ -43,6 +45,7 @@ class Apk:
         self.goal_states = []
         self.resource_id_to_name = {}
         self.resource_name_to_content = {}
+        self.static_to_dynamic_matching = defaultdict(list)
         self.setup()
 
     def install_apk(self):
@@ -213,7 +216,8 @@ class Apk:
     # Right now this simply returns the xml window hierarchy
     def get_current_state(self):
         window_hierarchy = self.uiautomator_device.dump_hierarchy()
-        return window_hierarchy
+        self.current_state = window_hierarchy
+        return self.current_state
 
     def get_match_score(self, s_sctions, d_actions):
         match_score = 0
@@ -233,6 +237,7 @@ class Apk:
 
                 d_action_summary = d_action.element_summary
                 if s_res_id in d_action_summary or s_res_name in d_action_summary or s_res_content in d_action_summary:
+                    self.static_to_dynamic_matching[d_action].append(s_action)
                     match_score += 1
                     break
 
@@ -241,14 +246,28 @@ class Apk:
     def get_wtg_graph(self, wtg_obj):
         return wtg_obj.wtg_graph
 
+    def get_current_activity(self):
+        cmd = "adb shell dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'"
+        output = subprocess.check_output(cmd, shell=True)
+        output = output.decode().strip().splitlines()
+        current_activity = None
+
+        if output!= '':
+            current_activity = output[0].split("/")[1].split("}")[0]
+
+        return current_activity
+
     def get_wtg_state(self, wtg_obj):
         max_match_score = 0
         potential_target_nodes = []
+        current_activity_class_name = self.get_current_activity()
         wtg_graph = wtg_obj.wtg_graph
-        current_dynamic_state = self.uiautomator_device.dump_hierarchy()
-        dynamic_available_actions = self.get_available_actionable_elements(current_dynamic_state)
+        dynamic_available_actions = self.current_available_actions
+
         for node in wtg_graph.nodes:
-            static_available_actions = node.available_actions
+            if current_activity_class_name not in node.node_value:
+                continue
+            static_available_actions = list(node.available_actions.values())
             match_score, explicit_actions = self.get_match_score(static_available_actions, dynamic_available_actions)
 
             if explicit_actions != 0 and len(dynamic_available_actions) != 0:
@@ -266,6 +285,39 @@ class Apk:
     def create_gui_element_object(self, xml_node):
         gui_obj = GuiElements(xml_node)
         return gui_obj
+
+    def get_matching_dynamic_action_to_static_action(self, dynamic_action, wtg_obj):
+        potential_target_nodes = self.get_wtg_state(wtg_obj)
+        already_matched_static_actions = []
+        potential_static_actions = []
+        matched_edges = []
+
+        for d_action in self.current_available_actions:
+            if self.static_to_dynamic_matching.get(d_action) is not None:
+                if dynamic_action == d_action:
+                    potential_static_actions.extend(self.static_to_dynamic_matching[dynamic_action])
+                else:
+                    already_matched_static_actions.extend(self.static_to_dynamic_matching[d_action])
+
+
+        for target_node in potential_target_nodes:
+            for edge in target_node.available_actions.keys():
+                static_action = target_node.available_actions[edge]
+
+                if static_action in already_matched_static_actions:
+                    continue
+
+                else:
+                    if edge not in matched_edges:
+                        matched_edges.append(edge)
+
+        wtg_edges = []
+        for matched_edge in matched_edges:
+            src_node = wtg_obj.nodes[matched_edge.src_node_key]
+            dest_node = wtg_obj.nodes[matched_edge.dest_node_key]
+            wtg_edges.append((src_node, dest_node, matched_edge.edge_id))
+
+        return wtg_edges
 
     # This function expects the current device state as an argument
     # and returns an array of actionable elements
@@ -290,7 +342,8 @@ class Apk:
                     gui_obj = self.create_gui_element_object(top_element)
                     clickable_gui_elements.append(gui_obj)
 
-        return clickable_gui_elements
+        self.current_available_actions = clickable_gui_elements
+        return self.current_available_actions
 
 
     def get_reached_goal_states(self, goal_type):

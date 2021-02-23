@@ -5,7 +5,7 @@ class WTGNode:
     def __init__(self, node_key, node_value):
         self.node_value = node_value
         self.node_key = node_key
-        self.available_actions = []
+        self.available_actions = {}
         self.node_state = None
         self.node_id = None
         self.node_type = None

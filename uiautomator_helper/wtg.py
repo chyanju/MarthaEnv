@@ -48,6 +48,7 @@ class WTG:
         self.process_edges(self.wtg.edges._adjdict)
         self.map_actions_to_node()
 
+
     def process_nodes(self, wtg_nodes_dict):
         for node_key, node_value in wtg_nodes_dict.items():
             node = WTGNode(node_key, node_value['label'][1:-1])
@@ -64,7 +65,8 @@ class WTG:
             for edge in edges:
                 for key in self.edges[edge[0]][edge[1]].keys():
                     wtg_edge_obj = self.edges[edge[0]][edge[1]][key]
-                    node.available_actions.append(wtg_edge_obj.get_actionable_resource())
+                    node.available_actions[wtg_edge_obj] = wtg_edge_obj.get_actionable_resource()
+        print("")
 
     def process_edges(self, wtg_adjdict):
         for src_node_key in wtg_adjdict.keys():
