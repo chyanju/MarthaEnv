@@ -1,4 +1,3 @@
-import subprocess
 import sys
 sys.path.append("../..")
 import angr
@@ -30,7 +29,7 @@ from xml.etree import cElementTree as ElementTree
 import xml.etree.ElementTree as ET
 import IPython
 
-
+SYSTEM_EVENTS = ['home', 'rotate', 'back', 'power','launch']
 class Apk:
 
     def __init__(self, apk_path, uiautomator_device, output_dir, log):
@@ -42,6 +41,8 @@ class Apk:
         self.debug = []
         self.output_dir = output_dir
         self.goal_states = []
+        self.resource_id_to_name = {}
+        self.resource_name_to_content = {}
         self.setup()
 
     def install_apk(self):
@@ -70,12 +71,23 @@ class Apk:
     def setup(self):
         self.clean_logcat()
         self.apk = APK(self.apk_path)
+        self.apk.get_android_resources()._analyse()
+        self.populate_resource_ids()
         self.install_apk()
         th = threading.Thread(target=self.start_logging)
         th.start()
 
         #self.start_logging()
+    def populate_resource_ids(self):
+        arsc_parser = self.apk.arsc['resources.arsc']
+        for res_type in self.apk.arsc['resources.arsc'].resource_keys[self.apk.packagename].keys():
+            for res_name in self.apk.arsc['resources.arsc'].resource_keys[self.apk.packagename][res_type].keys():
+                res_id = self.apk.arsc['resources.arsc'].resource_keys[self.apk.packagename][res_type][res_name]
+                self.resource_id_to_name[str(res_id)] = res_name
 
+        locale = '\x00\x00'
+        for value_pair in arsc_parser.values[self.apk.packagename][locale]['string']:
+            self.resource_name_to_content[value_pair[0]] = value_pair[1]
 
     def enable_logging(self):
         self.logging = True
@@ -203,6 +215,53 @@ class Apk:
         window_hierarchy = self.uiautomator_device.dump_hierarchy()
         return window_hierarchy
 
+    def get_match_score(self, s_sctions, d_actions):
+        match_score = 0
+        explit_actions = 0
+        for s_action in s_sctions:
+            if s_action['name'] in SYSTEM_EVENTS:
+                continue
+            explit_actions += 1
+            for d_action in d_actions:
+                s_res_id = s_action['id']
+                s_res_name = 'NaN'
+                s_res_content = 'NaN'
+                if self.resource_id_to_name.get(s_res_id) is not None:
+                    s_res_name = self.resource_id_to_name[s_res_id]
+                    if self.resource_name_to_content.get(s_res_name) is not None:
+                        s_res_content = self.resource_name_to_content[s_res_name]
+
+                d_action_summary = d_action.element_summary
+                if s_res_id in d_action_summary or s_res_name in d_action_summary or s_res_content in d_action_summary:
+                    match_score += 1
+                    break
+
+        return match_score, explit_actions
+
+    def get_wtg_graph(self, wtg_obj):
+        return wtg_obj.wtg_graph
+
+    def get_wtg_state(self, wtg_obj):
+        max_match_score = 0
+        potential_target_nodes = []
+        wtg_graph = wtg_obj.wtg_graph
+        current_dynamic_state = self.uiautomator_device.dump_hierarchy()
+        dynamic_available_actions = self.get_available_actionable_elements(current_dynamic_state)
+        for node in wtg_graph.nodes:
+            static_available_actions = node.available_actions
+            match_score, explicit_actions = self.get_match_score(static_available_actions, dynamic_available_actions)
+
+            if explicit_actions != 0 and len(dynamic_available_actions) != 0:
+                if match_score >= max_match_score:
+                    max_match_score = match_score
+                    potential_target_nodes = []
+                    potential_target_nodes.append(node)
+
+            if explicit_actions == 0 and len(dynamic_available_actions) == 0:
+                if not node.node_value.startswith('LAUNCHER_NODE'):
+                    potential_target_nodes.append(node)
+
+        return potential_target_nodes
 
     def create_gui_element_object(self, xml_node):
         gui_obj = GuiElements(xml_node)
@@ -224,9 +283,10 @@ class Apk:
             if 'clickable' in top_element.keys():
                 all_keys = top_element.keys()
                 index = all_keys.index('clickable')
+                package_index = all_keys.index('package')
                 all_items = top_element.items()
 
-                if all_items[index][1] == 'true':
+                if all_items[index][1] == 'true' and all_items[package_index][1] == self.apk.packagename:
                     gui_obj = self.create_gui_element_object(top_element)
                     clickable_gui_elements.append(gui_obj)
 

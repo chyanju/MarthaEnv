@@ -4,6 +4,7 @@ sys.path.append("..")
 from enum import Enum
 import datetime
 import argparse
+import networkx as nx
 #from uiautomator import Device
 import uiautomator2 as u2
 import json
@@ -26,6 +27,7 @@ from pyaxmlparser import APK
 from lib import *
 from shutil import rmtree
 from apk import *
+from wtg import *
 
 def get_device_serial(log):
     device_serial = None
@@ -70,6 +72,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Explore actions in the app using uiautomator')
     parser.add_argument('-p', '--path', help='provide full path of the apk')
+    parser.add_argument('-w', '--wtginput', help='The path to WTG')
     parser.add_argument('-o', '--output', default=OUTPUT_DIR, help='path to the location where output will be stored')
 
     args = parser.parse_args()
@@ -80,17 +83,21 @@ if __name__ == "__main__":
 
     else:
         parser.print_usage()
+        sys.exit(1)
 
     if args.output is not None:
         OUTPUT_DIR = args.output
 
-    output_dir = os.path.join(OUTPUT_DIR, apk_base_name)
+    output_dir = os.path.join(OUTPUT_DIR, 'exploration_output', apk_base_name)
+
+    wtg = None
+    if args.wtginput:
+        wtg = os.path.join(args.wtginput, apk_base_name)
 
     if os.path.exists(output_dir):
         rmtree(output_dir)
 
-    if not os.path.exists(output_dir):
-        os.mkdir(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
 
     # Setting the path for log file
     log_path = os.path.join(output_dir, 'analysis.log')
@@ -109,11 +116,18 @@ if __name__ == "__main__":
         log.warning("Device is not connected!")
         sys.exit(1)
 
+
     # Initialize the uiautomator device object using the device serial
     uiautomator_device = u2.connect(device_serial)
     run_adb_as_root(log)
     apk_obj = Apk(args.path, uiautomator_device, output_dir, log)
+    wtg_obj = WTG(wtg, log)
+
     apk_obj.launch_app()
+    #state = apk_obj.get_current_state()
+    #apk_obj.get_available_actionable_elements(state)
+    #time.sleep(5)
+    #apk_obj.get_wtg_state(wtg_obj)
     input()
     #apk_obj.is_target_state()
     #print("")

@@ -50,7 +50,9 @@ class GuiElements:
         self.x = None
         self.y = None
         self.setup()
+        self.element_summary = ''
         self.compute_coordinate()
+        self.compute_gui_element_summary()
 
     def setup(self):
         for item in self.node.items():
@@ -103,3 +105,22 @@ class GuiElements:
         second = right.split(']')[0].split(',')
         self.x = int((int(first[0]) + int(second[0]))/2)
         self.y = int((int(first[1]) + int(second[1])) / 2)
+
+    def compute_gui_element_summary(self):
+        root_child = self.node
+        bfs_queue = []
+        bfs_queue.append(root_child)
+        all_tokens = []
+
+        while len(bfs_queue) != 0:
+            top_element = bfs_queue.pop()
+            children = top_element.getchildren()
+            bfs_queue.extend(children)
+
+            for item in top_element.items():
+                all_tokens.append(item[1])
+
+        self.element_summary = " : ".join(all_tokens)
+
+
+

@@ -12,6 +12,7 @@ import soot.jimple.infoflow.android.axml.AXmlHandler;
 import soot.jimple.infoflow.android.axml.AXmlNode;
 import soot.jimple.infoflow.android.data.AndroidMethod;
 import soot.jimple.infoflow.android.manifest.ProcessManifest;
+import soot.jimple.infoflow.android.resources.ARSCFileParser;
 import soot.jimple.infoflow.data.SootMethodAndClass;
 import soot.jimple.infoflow.methodSummary.data.provider.LazySummaryProvider;
 import soot.jimple.infoflow.methodSummary.taintWrappers.SummaryTaintWrapper;
@@ -438,6 +439,7 @@ public class ApkSelector {
         String mainActivityName = null;
         try {
             mainActivityName = getMainActivityName(fileName);
+
         } catch (Exception e) {
             throw e;
         }
