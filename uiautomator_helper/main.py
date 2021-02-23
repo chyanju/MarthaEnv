@@ -74,12 +74,22 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--path', help='provide full path of the apk')
     parser.add_argument('-w', '--wtginput', help='The path to WTG')
     parser.add_argument('-o', '--output', default=OUTPUT_DIR, help='path to the location where output will be stored')
+    parser.add_argument('-gs', '--goalstates', help='path to the location where output will be stored')
 
     args = parser.parse_args()
 
     if args.path is not None:
         pyaxmlparser_apk = APK(args.path)
         apk_base_name = os.path.splitext(os.path.basename(args.path))[0]
+
+    else:
+        parser.print_usage()
+        sys.exit(1)
+
+    goal_states = {}
+    if args.goalstates is not None:
+        with open(args.goalstates, 'r') as fp:
+            goal_states = json.load(fp)
 
     else:
         parser.print_usage()
@@ -122,6 +132,7 @@ if __name__ == "__main__":
     run_adb_as_root(log)
     apk_obj = Apk(args.path, uiautomator_device, output_dir, log)
     wtg_obj = WTG(wtg, log)
+    wtg_obj.set_goal_nodes(goal_states)
 
     apk_obj.launch_app()
     #state = apk_obj.get_current_state()

@@ -1,4 +1,6 @@
 package dev.navids.soottutorial.android;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.commons.io.comparator.SizeFileComparator;
 import org.apache.commons.io.FileUtils;
 import org.xmlpull.v1.XmlPullParserException;
@@ -29,6 +31,8 @@ import soot.util.queue.QueueReader;
 
 import java.io.*;
 import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -407,16 +411,78 @@ public class ApkSelector {
         //mainActivityName = pm.getPackageName() + mainActivityName;
         return mainActivityName;
     }
+
+    private static void dumpGoalMethods(String fileName, CallGraph cg, ArrayList<MethodOrMethodContext> sensitiveMethods, ArrayList<MethodOrMethodContext> dummyMainMethods){
+        List<MethodOrMethodContext> callback_methods =new ArrayList<>();
+
+        for (MethodOrMethodContext method: dummyMainMethods) {
+            Iterator<Edge> allEdges = cg.edgesOutOf(method);
+
+            while (allEdges.hasNext()) {
+                Edge edge = allEdges.next();
+                callback_methods.add(edge.getTgt());
+            }
+
+        }
+
+        Map<String, String> goalMethods = new HashMap<>();
+
+        int count = 0;
+        for (MethodOrMethodContext callbackMethod: callback_methods){
+            List<MethodOrMethodContext> m = new ArrayList<>();
+            m.add(callbackMethod);
+            ReachableMethods reachableMethods = new ReachableMethods(cg, m);
+            reachableMethods.update();
+
+            for (MethodOrMethodContext sensitiveMethod: sensitiveMethods){
+                if(reachableMethods.contains(sensitiveMethod))
+                    goalMethods.put(String.valueOf(count), callbackMethod.method().getSignature());
+            }
+        }
+        Path path = Paths.get(fileName);
+        String tempFileName = path.getFileName().toString();
+        String outDirName = tempFileName.split(".apk")[0];
+
+        String outDirPath = "/home/priyanka/research/projects/goal_output" + "/Instrumentation_out/" + outDirName;
+        File outputDir = new File(outDirPath);
+        outputDir.delete();
+
+        String outPath = outDirPath + "/goal.json";
+        jsonWriter(outPath, goalMethods);
+    }
+
+    private static void jsonWriter(String filePath, Map<String, String> outPutList)
+    {
+        Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
+        try(FileWriter writer = new FileWriter(filePath))
+        {
+            gson.toJson(outPutList,writer);
+
+            writer.close();
+        }
+        catch(IOException e)
+        {
+            e.printStackTrace();
+        }
+    }
+
     private static void checkForSensitiveAPIs(String fileName, SetupApplication analyzer) throws Exception {
         QueueReader<MethodOrMethodContext> qr = Scene.v().getReachableMethods().listener();
         ArrayList<MethodOrMethodContext> allMethods = new ArrayList<>();
         ArrayList<MethodOrMethodContext> onCreateMethods = new ArrayList<>();
+        ArrayList<MethodOrMethodContext> allOnCreateMethods = new ArrayList<>();
 
         boolean isAPI = false;
         while (qr.hasNext()) {
             SootMethod meth = (SootMethod) qr.next();
+
+            if (meth.getSignature().contains("android.content.Intent") && meth.getSignature().contains("dummyMainMethod"))
+                allOnCreateMethods.add(meth);
+
             if (!meth.isJavaLibraryMethod() && meth.hasActiveBody()) {
                 String body = meth.getActiveBody().toString();
+
+
 
                 for (final String apiName : sensitiveAPIs) {
                     if (body.contains(apiName)) {
@@ -430,8 +496,10 @@ public class ApkSelector {
             }
         }
 
+
         if (isAPI)
             sensitiveApiPresenceCount += 1;
+
 
         Map<String, String> allMethodsRechability = new HashMap<>();
         List<SootClass> entrypoints = new ArrayList<>(analyzer.getEntrypointClasses());
@@ -456,8 +524,9 @@ public class ApkSelector {
         }
 
         CallGraph cg = Scene.v().getCallGraph();
+        dumpGoalMethods(fileName, cg, allMethods, allOnCreateMethods);
 
-        //System.out.println(onCreateMethods);
+
         boolean isReachable = true;
         for (MethodOrMethodContext method: onCreateMethods) {
             List<MethodOrMethodContext> m = new ArrayList<>();
@@ -516,6 +585,7 @@ public class ApkSelector {
             }
 
         }
+
 
         //System.out.println(allMethodsRechability);
         for (MethodOrMethodContext sm: allMethods){

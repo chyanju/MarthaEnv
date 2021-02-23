@@ -33,6 +33,7 @@ class WTG:
 
     def __init__(self, wtg_root, log):
         self.wtg_root_dir = wtg_root
+        self.goal_states = []
         self.launch_node = None
         self.wtg_graph = nx.MultiDiGraph()
         self.wtg = None
@@ -47,8 +48,22 @@ class WTG:
         self.process_nodes(self.wtg.nodes._nodes)
         self.process_edges(self.wtg.edges._adjdict)
         self.map_actions_to_node()
+        self.set_goal_nodes()
 
 
+    def set_goal_nodes(self, goal_states):
+        handlers = list(goal_states.values())
+        for src_node in self.edges.keys():
+            for dest_node in self.edges[src_node].keys():
+                for edge_id in self.edges[src_node][dest_node].keys():
+                    edge_obj = self.edges[src_node][dest_node][edge_id]
+                    common_handlers = list(set(edge_obj.handlers).intersection(set(handlers)))
+                    if len(common_handlers) != 0:
+                        self.goal_states.append((src_node, dest_node, edge_id))
+
+    def get_goal_states(self):
+        return self.goal_states
+    
     def process_nodes(self, wtg_nodes_dict):
         for node_key, node_value in wtg_nodes_dict.items():
             node = WTGNode(node_key, node_value['label'][1:-1])

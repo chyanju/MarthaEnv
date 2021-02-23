@@ -286,6 +286,7 @@ class Apk:
         gui_obj = GuiElements(xml_node)
         return gui_obj
 
+
     def get_matching_dynamic_action_to_static_action(self, dynamic_action, wtg_obj):
         potential_target_nodes = self.get_wtg_state(wtg_obj)
         already_matched_static_actions = []
