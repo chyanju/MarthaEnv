@@ -177,6 +177,7 @@ public class ApkSelector {
             else
                 fullFilePath = fileName;
 
+
             final Duration timeout = Duration.ofSeconds(1800);
             ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -202,6 +203,7 @@ public class ApkSelector {
 
             executor.shutdownNow();
             analyzedApks = analyzedApks + 1;
+
             fileWrited(totalApks, analyzedApks, erroredOutApks, timedOutApks);
             System.gc();
         }
@@ -283,48 +285,53 @@ public class ApkSelector {
     private static void runAnalysis(final String fileName, final String androidJar) throws Exception{
         final long beforeRun = System.nanoTime();
         final File[] files = (new File(ic3OutPath)).listFiles();
+        System.out.println("Here");
 
-        if (files.length > 0) {
+        InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
+        config.getAnalysisFileConfig().setAndroidPlatformDir(androidJar);
+        config.getAnalysisFileConfig().setTargetAPKFile(fileName);
+        config.setEnableReflection(true);
 
-            InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
-            config.getAnalysisFileConfig().setAndroidPlatformDir(androidJar);
-            config.getAnalysisFileConfig().setTargetAPKFile(fileName);
-            config.setEnableReflection(true);
-
+        if (files.length > 0)
             config.getIccConfig().setIccModel(files[0].getPath());
-            config.setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
-            config.setImplicitFlowMode(InfoflowConfiguration.ImplicitFlowMode.AllImplicitFlows);
-            config.setMergeDexFiles(true);
-            SummaryTaintWrapper wrap = null;
+        config.setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
+        config.setImplicitFlowMode(InfoflowConfiguration.ImplicitFlowMode.AllImplicitFlows);
+        config.setMergeDexFiles(true);
+        SummaryTaintWrapper wrap = null;
 
-            try {
-                wrap = new SummaryTaintWrapper(new LazySummaryProvider("summariesManual"));
-            } catch (Exception e) {
-                throw e;
-            }
+        try {
+            wrap = new SummaryTaintWrapper(new LazySummaryProvider("summariesManual"));
+        } catch (Exception e) {
+            throw e;
+        }
 
-            SetupApplication analyzer = new SetupApplication(config);
-            analyzer.setTaintWrapper(wrap);
+        SetupApplication analyzer = new SetupApplication(config);
+        analyzer.setTaintWrapper(wrap);
 
-            InfoflowResults res1 = null;
+        InfoflowResults res1 = null;
 
-            String source_sink_file = System.getProperty("user.dir") + "/SourcesAndSinks.txt";
-            analyzer.constructCallgraph();
+        String source_sink_file = System.getProperty("user.dir") + "/SourcesAndSinks.txt";
+        analyzer.constructCallgraph();
 
-            //analyzer.constructCallgraph();
+        //analyzer.constructCallgraph();
 
-            CallGraph cg = Scene.v().getCallGraph();
+        CallGraph cg = Scene.v().getCallGraph();
 
-            if (cg.size() < 10000) {
-                drawCallGraph(cg);
-                checkForSensitiveAPIs(fileName, analyzer);
-            } else {
-                overSizedCallgraph = overSizedCallgraph + 1;
-            }
+        if (cg.size() < 10000) {
+            drawCallGraph(cg);
+            checkForSensitiveAPIs(fileName, analyzer);
+        } else {
+            overSizedCallgraph = overSizedCallgraph + 1;
+        }
+
+        /*
+        if (files.length > 0)
+
+        {
         }
         else{
             iccMissing += 1;
-        }
+        }*/
     }
 
     private static DotGraph drawCallGraph(CallGraph callGraph) throws Exception{
@@ -345,7 +352,7 @@ public class ApkSelector {
             }
         }
 
-        dot.plot("/home/priyanka/Downloads/callgraph.dot");
+        //dot.plot("/home/priyanka/Downloads/callgraph.dot");
         return dot;
     }
 
@@ -412,45 +419,6 @@ public class ApkSelector {
         return mainActivityName;
     }
 
-    private static void dumpGoalMethods(String fileName, CallGraph cg, ArrayList<MethodOrMethodContext> sensitiveMethods, ArrayList<MethodOrMethodContext> dummyMainMethods){
-        List<MethodOrMethodContext> callback_methods =new ArrayList<>();
-
-        for (MethodOrMethodContext method: dummyMainMethods) {
-            Iterator<Edge> allEdges = cg.edgesOutOf(method);
-
-            while (allEdges.hasNext()) {
-                Edge edge = allEdges.next();
-                callback_methods.add(edge.getTgt());
-            }
-
-        }
-
-        Map<String, String> goalMethods = new HashMap<>();
-
-        int count = 0;
-        for (MethodOrMethodContext callbackMethod: callback_methods){
-            List<MethodOrMethodContext> m = new ArrayList<>();
-            m.add(callbackMethod);
-            ReachableMethods reachableMethods = new ReachableMethods(cg, m);
-            reachableMethods.update();
-
-            for (MethodOrMethodContext sensitiveMethod: sensitiveMethods){
-                if(reachableMethods.contains(sensitiveMethod))
-                    goalMethods.put(String.valueOf(count), callbackMethod.method().getSignature());
-            }
-        }
-        Path path = Paths.get(fileName);
-        String tempFileName = path.getFileName().toString();
-        String outDirName = tempFileName.split(".apk")[0];
-
-        String outDirPath = "/home/priyanka/research/projects/goal_output" + "/Instrumentation_out/" + outDirName;
-        File outputDir = new File(outDirPath);
-        outputDir.delete();
-
-        String outPath = outDirPath + "/goal.json";
-        jsonWriter(outPath, goalMethods);
-    }
-
     private static void jsonWriter(String filePath, Map<String, String> outPutList)
     {
         Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
@@ -470,19 +438,14 @@ public class ApkSelector {
         QueueReader<MethodOrMethodContext> qr = Scene.v().getReachableMethods().listener();
         ArrayList<MethodOrMethodContext> allMethods = new ArrayList<>();
         ArrayList<MethodOrMethodContext> onCreateMethods = new ArrayList<>();
-        ArrayList<MethodOrMethodContext> allOnCreateMethods = new ArrayList<>();
 
         boolean isAPI = false;
         while (qr.hasNext()) {
             SootMethod meth = (SootMethod) qr.next();
 
-            if (meth.getSignature().contains("android.content.Intent") && meth.getSignature().contains("dummyMainMethod"))
-                allOnCreateMethods.add(meth);
 
             if (!meth.isJavaLibraryMethod() && meth.hasActiveBody()) {
                 String body = meth.getActiveBody().toString();
-
-
 
                 for (final String apiName : sensitiveAPIs) {
                     if (body.contains(apiName)) {
@@ -511,21 +474,14 @@ public class ApkSelector {
         } catch (Exception e) {
             throw e;
         }
-        //System.out.println("Main activity: " + mainActivityName);
 
         for (SootClass entrylass : entrypoints) {
             SootMethod createMeth = entrylass.getMethodByName("onCreate");
-            //System.out.println(createMeth.getSignature());
-            //System.out.println(mainActivityName);
-            //onCreateMethods.add(AndroidMethod.createFromSignature(createMeth.getSignature()));
             if (createMeth.getSignature().contains(mainActivityName))
                 onCreateMethods.add(createMeth);
-            //System.out.println("Entry point: " + createMeth.getSignature());
         }
 
         CallGraph cg = Scene.v().getCallGraph();
-        dumpGoalMethods(fileName, cg, allMethods, allOnCreateMethods);
-
 
         boolean isReachable = true;
         for (MethodOrMethodContext method: onCreateMethods) {
@@ -548,33 +504,8 @@ public class ApkSelector {
             if (mainMethod != null)
                 m.add(mainMethod);
 
-            //System.out.println(mainMethod.getSignature());
-
-            //System.out.println(m);
             ReachableMethods rm = new ReachableMethods(cg, m);
             rm.update();
-
-            /*
-            List<MethodOrMethodContext> rechableMethods = new ArrayList<>();
-            rechableMethods.add(method);
-
-            List<MethodOrMethodContext> visited_methods = new ArrayList<>();
-
-            while(m.size() > 0) {
-                Iterator<Edge> allEdges = cg.edgesOutOf(m.get(0));
-                m.remove(0);
-
-                while (allEdges.hasNext()) {
-                    Edge edge = allEdges.next();
-                    rechableMethods.add(edge.getTgt());
-
-                    if (!visited_methods.contains(edge.getTgt())) {
-                        m.add(edge.getTgt());
-                        visited_methods.add(edge.getTgt());
-                    }
-                }
-
-            }*/
 
 
             for (MethodOrMethodContext sm: allMethods){
@@ -587,7 +518,6 @@ public class ApkSelector {
         }
 
 
-        //System.out.println(allMethodsRechability);
         for (MethodOrMethodContext sm: allMethods){
             if (!allMethodsRechability.containsKey(sm.method().getSignature())){
                 isReachable = false;

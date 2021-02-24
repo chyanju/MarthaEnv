@@ -8,12 +8,20 @@ import soot.jimple.*;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+
+import soot.jimple.infoflow.InfoflowConfiguration;
 import soot.jimple.infoflow.android.InfoflowAndroidConfiguration;
 import soot.jimple.infoflow.android.SetupApplication;
+import soot.jimple.infoflow.methodSummary.data.provider.LazySummaryProvider;
+import soot.jimple.infoflow.methodSummary.taintWrappers.SummaryTaintWrapper;
 import soot.jimple.infoflow.results.InfoflowResults;
 import org.xmlpull.v1.XmlPullParserException;
+import soot.jimple.toolkits.callgraph.CallGraph;
+import soot.jimple.toolkits.callgraph.Edge;
+import soot.jimple.toolkits.callgraph.ReachableMethods;
 import soot.util.queue.QueueReader;
 
 
@@ -24,12 +32,10 @@ public class AndroidLogger {
     private static String androidJar = USER_HOME + "/Library/Android/sdk/platforms";
     static String androidDemoPath = System.getProperty("user.dir") + File.separator + "demo" + File.separator + "Android";
     static String apkPath = androidDemoPath + File.separator + "/opensudoku-sdk-22.apk";
-    static String dirpath;
     static String outputPath = androidDemoPath + File.separator + "/Instrumented";
-    static String outputApkspath = USER_HOME + "/output";
     static String idFilePath = outputPath + File.separator + "/JimpleIR.id";
     private static Map<String, List<String>> methodDetailsList = new HashMap<>();
-    private static Map<String, List<String>>  instrumentationDetails = new HashMap<>();
+    private static Map<String, List<String>> instrumentationDetails = new HashMap<>();
     static boolean dump = false;
     static boolean instrument = false;
     static boolean auto_instrument = false;
@@ -41,23 +47,110 @@ public class AndroidLogger {
     static boolean candidate;
 
 
-
-    public static void jsonWriter(String filePath, Map<String, List<String>> outPutList)
-    {
+    public static void jsonWriter(String filePath, Map<String, List<String>> outPutList) {
         Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
-        try(FileWriter writer = new FileWriter(filePath))
-        {
-            gson.toJson(outPutList,writer);
+        try (FileWriter writer = new FileWriter(filePath)) {
+            gson.toJson(outPutList, writer);
 
             writer.close();
-        }
-        catch(IOException e)
-        {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public static void jsonReader(String filePath, String dataType){
+
+    public static void dumpGoalJson(String filePath, Map<String, String> outPutList) {
+        Gson gson = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
+        try (FileWriter writer = new FileWriter(filePath)) {
+            gson.toJson(outPutList, writer);
+
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void dumpGoalMethods(String apkPath, CallGraph cg, ArrayList<MethodOrMethodContext> sensitiveMethods, ArrayList<MethodOrMethodContext> dummyMainMethods) {
+        List<MethodOrMethodContext> callback_methods = new ArrayList<>();
+
+        for (MethodOrMethodContext method : dummyMainMethods) {
+            Iterator<Edge> allEdges = cg.edgesOutOf(method);
+
+            while (allEdges.hasNext()) {
+                Edge edge = allEdges.next();
+                callback_methods.add(edge.getTgt());
+            }
+
+        }
+
+        Map<String, String> goalMethods = new HashMap<>();
+
+        int count = 0;
+        for (MethodOrMethodContext callbackMethod : callback_methods) {
+            List<MethodOrMethodContext> m = new ArrayList<>();
+            m.add(callbackMethod);
+            ReachableMethods reachableMethods = new ReachableMethods(cg, m);
+            reachableMethods.update();
+
+            for (MethodOrMethodContext sensitiveMethod : sensitiveMethods) {
+                if (reachableMethods.contains(sensitiveMethod))
+                    goalMethods.put(String.valueOf(count), callbackMethod.method().getSignature());
+            }
+        }
+
+        String outPath = outputPath + "/goals_caller.json";
+        dumpGoalJson(outPath, goalMethods);
+    }
+
+    private static void getSensitiveApiCallerMethods(String apkPath, SetupApplication analyzer) throws Exception {
+        QueueReader<MethodOrMethodContext> qr = Scene.v().getReachableMethods().listener();
+        ArrayList<MethodOrMethodContext> allMethods = new ArrayList<>();
+        ArrayList<MethodOrMethodContext> allOnCreateMethods = new ArrayList<>();
+        CallGraph cg = Scene.v().getCallGraph();
+
+        while (qr.hasNext()) {
+            SootMethod meth = (SootMethod) qr.next();
+
+            if (meth.getSignature().contains("android.content.Intent") && meth.getSignature().contains("dummyMainMethod"))
+                allOnCreateMethods.add(meth);
+
+            if (!meth.isJavaLibraryMethod() && meth.hasActiveBody()) {
+                String body = meth.getActiveBody().toString();
+
+                for (final String apiName : sensitiveAPIs) {
+                    if (body.contains(apiName))
+                        allMethods.add(meth);
+
+                }
+            }
+        }
+
+        dumpGoalMethods(apkPath, cg, allMethods, allOnCreateMethods);
+    }
+
+    private static void runAnalysis(final String filePath, final String androidJar) throws Exception{
+        InfoflowAndroidConfiguration config = new InfoflowAndroidConfiguration();
+        config.getAnalysisFileConfig().setAndroidPlatformDir(androidJar);
+        config.getAnalysisFileConfig().setTargetAPKFile(filePath);
+        config.setEnableReflection(true);
+        config.setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
+        config.setImplicitFlowMode(InfoflowConfiguration.ImplicitFlowMode.AllImplicitFlows);
+        config.setMergeDexFiles(true);
+        SummaryTaintWrapper wrap = null;
+
+        try {
+            wrap = new SummaryTaintWrapper(new LazySummaryProvider("summariesManual"));
+        } catch (Exception e) {
+            throw e;
+        }
+
+        SetupApplication analyzer = new SetupApplication(config);
+        analyzer.setTaintWrapper(wrap);
+        analyzer.constructCallgraph();
+        getSensitiveApiCallerMethods(filePath, analyzer);
+    }
+
+    public static void jsonReader(String filePath, String dataType) {
         try {
             // create Gson instance
             Gson gson = new Gson();
@@ -67,9 +160,11 @@ public class AndroidLogger {
 
             // convert JSON file to map
             if (dataType.equals("training"))
-                trainingData = gson.fromJson(reader, new TypeToken<Map<String, String>>(){}.getType());
+                trainingData = gson.fromJson(reader, new TypeToken<Map<String, String>>() {
+                }.getType());
             else
-                testingData = gson.fromJson(reader, new TypeToken<Map<String, String>>(){}.getType());
+                testingData = gson.fromJson(reader, new TypeToken<Map<String, String>>() {
+                }.getType());
 
             // close reader
             reader.close();
@@ -79,15 +174,14 @@ public class AndroidLogger {
         }
     }
 
-    public static List<Unit> generateInstrumentedString(String instrumentationTAG, String hashMapKey, JimpleBody body, String id){
+    public static List<Unit> generateInstrumentedString(String instrumentationTAG, String hashMapKey, JimpleBody body, String id) {
         String content;
         List<Unit> generatedUnits = new ArrayList<>();
 
         if (instrumentationTAG.equals("TEST DATA")) {
             String goalState = hashMapKey + " : " + id;
             content = String.format("TEST DATA : Goal instruction in %s reached\n", goalState);
-        }
-        else{
+        } else {
             String goalState = hashMapKey + " : " + id;
             content = String.format("TRAIN DATA : Goal instruction in %s reached\n", goalState);
         }
@@ -115,44 +209,62 @@ public class AndroidLogger {
     }
 
 
-
     public static void main(String[] args) throws IOException {
-        if(System.getenv().containsKey("ANDROID_HOME"))
-            androidJar = System.getenv("ANDROID_HOME")+ File.separator+"platforms";
+        if (System.getenv().containsKey("ANDROID_HOME"))
+            androidJar = System.getenv("ANDROID_HOME") + File.separator + "platforms";
 
-        for (String s: args) {
-            if (s.equals("dump"))
-                dump = true;
+        if (args[0].contains("dump"))
+        {
+            dump = true;
+            apkPath = args[1];
 
-            if (s.equals("instrument"))
-                instrument = true;
-
-            if (s.equals("auto_instrument"))
-                auto_instrument = true;
-
-            if (s.contains(".apk"))
-                apkPath = s;
-            if (s.contains("train.json")){
-                jsonReader(s, "training");
-            }
-            if (s.contains("test.json")){
-                jsonReader(s, "testing");
-            }
-
+            if (args.length > 3)
+                outputPath = args[2];
         }
 
+        else if (args[0].equals("instrument"))
+        {
+            instrument = true;
+            apkPath = args[1];
+            jsonReader(args[2], "training");
+            jsonReader(args[3], "testing");
+
+            if (args.length > 4)
+                outputPath = args[4];
+        }
+        else if (args[0].equals("auto_instrument"))
+        {
+            auto_instrument = true;
+
+            apkPath = args[1];
+            if (args.length > 2)
+                outputPath = args[2];
+        }
+
+        Path path = Paths.get(apkPath);
+        String tempFileName = path.getFileName().toString();
+        String outDirName = tempFileName.split(".apk")[0];
+        outputPath = outputPath + "/" + outDirName;
+        File outdir = new File(outputPath);
 
         String package_name = InstrumentUtil.getPackageName(apkPath);
 
         // Clean the outputPath
-        final File[] files = (new File(outputPath)).listFiles();
+        final File[] files = outdir.listFiles();
         if (files != null && files.length > 0) {
             Arrays.asList(files).forEach(File::delete);
         }
-        // Initialize Soot
+
+        if (!outdir.exists())
+            outdir.mkdir();
+        
+        try {
+            runAnalysis(apkPath, androidJar);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         InstrumentUtil.setupSoot(androidJar, apkPath, outputPath);
-
-
         // Add a transformation pack in order to add the statement "System.out.println(<content>) at the beginning of each Application method
         PackManager.v().getPack("jtp").add(new Transform("jtp.myLogger", new BodyTransformer() {
             @Override
@@ -279,7 +391,7 @@ public class AndroidLogger {
             jsonWriter(idFilePath, methodDetailsList);
 
         if (auto_instrument) {
-            String jsonFilePath = outputPath + File.separator + "/goals.json";
+            String jsonFilePath = outputPath + File.separator + "/goal_statements.json";
             jsonWriter(jsonFilePath, instrumentationDetails);
         }
     }
