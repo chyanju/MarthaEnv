@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     wtg = None
     if args.wtginput:
-        wtg = os.path.join(args.wtginput, apk_base_name)
+        wtg = args.wtginput #os.path.join(args.wtginput, apk_base_name)
 
     if os.path.exists(output_dir):
         rmtree(output_dir)
@@ -136,10 +136,10 @@ if __name__ == "__main__":
 
     apk_obj.launch_app()
 
-    time.sleep(5)
-    state = apk_obj.get_current_state()
-    all_actions = apk_obj.get_available_actionable_elements(state)
-    edges = apk_obj.get_matching_dynamic_action_to_static_action(all_actions[0], wtg_obj)
+    #time.sleep(5)
+    #state = apk_obj.get_current_state()
+    #all_actions = apk_obj.get_available_actionable_elements(state)
+    #edges = apk_obj.get_matching_dynamic_action_to_static_action(all_actions[0], wtg_obj)
 
     #apk_obj.get_wtg_state(wtg_obj)
     input()
