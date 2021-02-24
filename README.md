@@ -7,19 +7,19 @@ Static Analysis Guided Interactive Environment for Android
   * build the test app apk and put it `/path/to/app.apk`
 
 ### Dump Jimple IR
-  * `./gradlew run --args="AndroidLogger dump /path/to/app.apk"`
-  * Output in `ApkInstrumentor/demo/Android`
+  * `./gradlew run --args="AndroidLogger dump /path/to/app.apk /path/to/the/output-dir"`
+  * Output in `/path/to/the/output-dir`
 
 ### Instrument Apk using test and training data
-  * `./gradlew run --args="AndroidLogger instrument /path/to/app.apk /path/to/train.json /path/to/test.json"`
-  * instrumented apk will be stored in : `ApkInstrumentor/demo/Android/Instrumented/app.apk`
+  * `./gradlew run --args="AndroidLogger instrument /path/to/app.apk /path/to/train.json /path/to/test.json /path/to/the/output-dir"`
+  * instrumented apk will be stored in : `/path/to/the/output-dir`
   
 ### Auto instrument sensitive APIs
-  * `./gradlew run --args="AndroidLogger auto_instrument /path/to/app.apk"`
-  * instrumented apk will be stored in : `ApkInstrumentor/demo/Android/Instrumented/app.apk`
+  * `./gradlew run --args="AndroidLogger auto_instrument /path/to/app.apk /path/to/the/output-dir"`
+  * instrumented apk will be stored in : `/path/to/the/output-dir`
 
 ### Auto instrument using builtin jar
-  * `cd ApkInstrumemtor && java -cp build/libs/CombinedJar-all.jar dev.navids.soottutorial.Main AndroidLogger auto_instrument /path/to/app.apk`
+  * `cd ApkInstrumemtor && java -cp build/libs/CombinedJar-all.jar dev.navids.soottutorial.Main AndroidLogger auto_instrument /path/to/app.apk /path/to/the/output-dir`
 
 ### Sign and install the apk
   * `cd ApkInstrumentor/demo/Android`
