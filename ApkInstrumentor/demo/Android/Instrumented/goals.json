@@ -1,0 +1,6 @@
+{
+  "<com.example.priyanka.testapp.BasicViewsActivity: void goToMain(android.view.View)>": [
+    "6:goto [?= $r2 = virtualinvoke r3.<java.net.URL: java.net.URLConnection openConnection()>()]",
+    "9:$r2 = virtualinvoke r3.<java.net.URL: java.net.URLConnection openConnection()>()"
+  ]
+}

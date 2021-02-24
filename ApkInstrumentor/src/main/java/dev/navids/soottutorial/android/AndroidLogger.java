@@ -33,7 +33,8 @@ public class AndroidLogger {
     static boolean dump = false;
     static boolean instrument = false;
     static boolean auto_instrument = false;
-    static String[] sensitiveAPIs = {"openConnection()", "AdRequest()", "javax.crypto", "javax.net.ssl", "sendTextMessage"};
+    //static String[] sensitiveAPIs = {"openConnection()", "AdRequest()", "javax.crypto", "javax.net.ssl", "sendTextMessage"};
+    static String[] sensitiveAPIs = {"openConnection()"};
     static boolean app_select = false;
     static Map<String, String> trainingData = new HashMap<String, String>();
     static Map<String, String> testingData = new HashMap<String, String>();
@@ -263,8 +264,8 @@ public class AndroidLogger {
                         }
 
                         // Validate the body to ensure that our code injection does not introduce any problem (at least statically)
-                        System.out.println(b);
-                        //b.validate();
+                        //System.out.println(b);
+                        b.validate();
 
                     }
                 }

@@ -252,7 +252,7 @@ class Apk:
         output = output.decode().strip().splitlines()
         current_activity = None
 
-        if output!= '':
+        if output!= '' and "/" in output[0]:
             current_activity = output[0].split("/")[1].split("}")[0]
 
         return current_activity
@@ -265,7 +265,7 @@ class Apk:
         dynamic_available_actions = self.current_available_actions
 
         for node in wtg_graph.nodes:
-            if current_activity_class_name not in node.node_value:
+            if current_activity_class_name is not None and current_activity_class_name not in node.node_value:
                 continue
             static_available_actions = list(node.available_actions.values())
             match_score, explicit_actions = self.get_match_score(static_available_actions, dynamic_available_actions)
@@ -305,12 +305,20 @@ class Apk:
             for edge in target_node.available_actions.keys():
                 static_action = target_node.available_actions[edge]
 
-                if static_action in already_matched_static_actions:
+                if static_action['name'] in SYSTEM_EVENTS:
                     continue
 
+                if static_action in potential_static_actions:
+                    matched_edges.append(edge)
+                    break
+
                 else:
-                    if edge not in matched_edges:
-                        matched_edges.append(edge)
+                    if static_action in already_matched_static_actions:
+                        continue
+
+                    else:
+                        if edge not in matched_edges:
+                            matched_edges.append(edge)
 
         wtg_edges = []
         for matched_edge in matched_edges:

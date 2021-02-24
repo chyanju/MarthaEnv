@@ -135,9 +135,12 @@ if __name__ == "__main__":
     wtg_obj.set_goal_nodes(goal_states)
 
     apk_obj.launch_app()
-    #state = apk_obj.get_current_state()
-    #apk_obj.get_available_actionable_elements(state)
-    #time.sleep(5)
+
+    time.sleep(5)
+    state = apk_obj.get_current_state()
+    all_actions = apk_obj.get_available_actionable_elements(state)
+    edges = apk_obj.get_matching_dynamic_action_to_static_action(all_actions[0], wtg_obj)
+
     #apk_obj.get_wtg_state(wtg_obj)
     input()
     #apk_obj.is_target_state()

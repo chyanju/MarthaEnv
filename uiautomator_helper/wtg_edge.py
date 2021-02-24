@@ -30,7 +30,8 @@ class WTGEdge:
                 self.widget = attribute.split("widget: ")[1]
 
             if 'handler: ' in attribute:
-                self.handlers = attribute.split("handler: ")[1]
+                self.handlers = attribute.split("handler: ")[1].split("[")[1].split("]")[0].split(",")
+                #self.handlers = attribute.split("handler: ")[1]
 
             if 'stack: ' in attribute:
                 self.stack = attribute.split("stack: ")[1]
@@ -82,14 +83,18 @@ class WTGEdge:
             widget_details = self.widget.split("INFL[")[1].split(",")
             self.resource_details['type'] = widget_details[0]
 
-            matched_widget = widget_details[1].split('[', 1)[1].split(']')[0]
-            self.resource_details['name'] = matched_widget.split("|")[2]
+            if "[" in widget_details[1] and "]" in widget_details[1]:
+                matched_widget = widget_details[1].split('[', 1)[1].split(']')[0]
+                self.resource_details['name'] = matched_widget.split("|")[2]
 
-            if widget_details[1].startswith('AID'):
-                self.resource_details['id'] = matched_widget.split("|")[1]
+                if widget_details[1].startswith('AID'):
+                    self.resource_details['id'] = matched_widget.split("|")[1]
 
+                else:
+                    self.resource_details['id'] = matched_widget.split("|")[0]
             else:
-                self.resource_details['id'] = matched_widget.split("|")[0]
+                self.resource_details['name'] = widget_details[1]
+                self.resource_details['id'] = widget_details[1]
 
         elif self.widget.startswith('OptionsMenu'):
             self.resource_details['name'] = self.widget.split("[")[1].split("]")[0]
