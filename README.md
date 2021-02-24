@@ -25,6 +25,9 @@ Static Analysis Guided Interactive Environment for Android
   * `cd ApkInstrumentor/demo/Android`
   * `./sign.sh path/to/instrumented.apk key "android"`
   * `adb install -r -t /path/to/signed.apk`
+  
+### Running uiautomator helper
+  *`/home/priyanka/research/projects/MarthaEnv/uiautomator_helper/main.py -p /path/to/the/apk -o /path/to/the/output/directory -w /path/to/the/directory/where/wtg.dot/is/present -gs /path/to/the/goal/json`
 
 # Neural Agent
 
