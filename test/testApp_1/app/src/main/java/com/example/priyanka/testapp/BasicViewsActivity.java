@@ -15,7 +15,7 @@ import java.net.URL;
 public class BasicViewsActivity extends Activity {
 
 	public static final String EXTRA_MESSAGE = "com.example.priyanka.testapp..MESSAGE";
-	public String message;
+	public String message = "";
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_basic_views);
@@ -23,7 +23,7 @@ public class BasicViewsActivity extends Activity {
 
 	public void goToMain(View view){
 
-		if (message.equals("c")) {
+		if (message.equals("Hello world")) {
 			URL url = null;
 			try {
 				url = new URL("http://www.mysite.se/index.asp?data=99");

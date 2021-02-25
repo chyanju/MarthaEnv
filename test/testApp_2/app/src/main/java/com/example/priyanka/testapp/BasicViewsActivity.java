@@ -15,7 +15,7 @@ import java.net.URL;
 public class BasicViewsActivity extends Activity {
 
 	public static final String EXTRA_MESSAGE = "com.example.priyanka.testapp..MESSAGE";
-	public String message;
+	public String message = "";
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -47,6 +47,7 @@ public class BasicViewsActivity extends Activity {
 				e.printStackTrace();
 			}
 		}
+
 		Intent intent = new Intent();
 		intent.setClass(this, DisplayMessageActivity.class);
 		EditText editText = (EditText) findViewById(R.id.editText1);
@@ -55,5 +56,6 @@ public class BasicViewsActivity extends Activity {
 			message = "Hello World";
 		intent.putExtra(EXTRA_MESSAGE, message);
 		startActivity(intent);
+
 	}
 }
