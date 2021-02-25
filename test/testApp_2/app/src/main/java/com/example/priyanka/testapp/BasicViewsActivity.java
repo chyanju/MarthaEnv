@@ -15,6 +15,7 @@ import java.net.URL;
 public class BasicViewsActivity extends Activity {
 
 	public static final String EXTRA_MESSAGE = "com.example.priyanka.testapp..MESSAGE";
+	public String message;
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -27,21 +28,25 @@ public class BasicViewsActivity extends Activity {
 		startActivity(intent);
 	}
 
+	public void setMessage(View view){
+		message = "Here";
+	}
 	public void goToDisplay(View view){
 
-		URL url = null;
-		try {
-			url = new URL("http://www.mysite.se/index.asp?data=99");
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
+		if (message.equals("Here")) {
+			URL url = null;
+			try {
+				url = new URL("http://www.mysite.se/index.asp?data=99");
+			} catch (MalformedURLException e) {
+				e.printStackTrace();
+			}
+			HttpURLConnection urlConnection = null;
+			try {
+				urlConnection = (HttpURLConnection) url.openConnection();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
-		HttpURLConnection urlConnection = null;
-		try {
-			urlConnection = (HttpURLConnection) url.openConnection();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
 		Intent intent = new Intent();
 		intent.setClass(this, DisplayMessageActivity.class);
 		EditText editText = (EditText) findViewById(R.id.editText1);
