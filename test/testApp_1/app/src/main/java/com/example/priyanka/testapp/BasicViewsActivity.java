@@ -15,29 +15,36 @@ import java.net.URL;
 public class BasicViewsActivity extends Activity {
 
 	public static final String EXTRA_MESSAGE = "com.example.priyanka.testapp..MESSAGE";
-	@Override
+	public String message;
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_basic_views);
 	}
 
 	public void goToMain(View view){
-		URL url = null;
-		try {
-			url = new URL("http://www.mysite.se/index.asp?data=99");
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		}
-		HttpURLConnection urlConnection = null;
-		try {
-			urlConnection = (HttpURLConnection) url.openConnection();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
 
-		Intent intent = new Intent();
-		intent.setClass(this, MainActivity.class);
-		startActivity(intent);
+		if (message.equals("c")) {
+			URL url = null;
+			try {
+				url = new URL("http://www.mysite.se/index.asp?data=99");
+			} catch (MalformedURLException e) {
+				e.printStackTrace();
+			}
+			HttpURLConnection urlConnection = null;
+			try {
+				urlConnection = (HttpURLConnection) url.openConnection();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			Intent intent = new Intent();
+			intent.setClass(this, MainActivity.class);
+			startActivity(intent);
+		}
+	}
+
+	public void setMessage(View view){
+		message = "Hello world";
 	}
 
 	public void goToDisplay(View view){
