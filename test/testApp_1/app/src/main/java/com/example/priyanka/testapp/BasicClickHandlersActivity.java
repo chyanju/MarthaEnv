@@ -1,6 +1,7 @@
 package com.example.priyanka.testapp;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.View;
@@ -31,7 +32,19 @@ public class BasicClickHandlersActivity extends Activity {
 	public void firstButtonClicked(View v) {
 		SimpleAlertDialog.displayWithOK(this, "firstButton clicked via XML handler");
 	}
-	
+	public void goToHome(View view){
+		Intent intent = new Intent();
+		intent.setClass(this, MainActivity.class);
+		intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+		startActivity(intent);
+		finish();
+	}
+
+	public void goToDisplay(View view){
+		Intent intent = new Intent();
+		intent.setClass(this, DisplayMessageActivity.class);
+		startActivity(intent);
+	}
 	private void secondButtonClicked(View v) {
 		SimpleAlertDialog.displayWithOK(this, "secondButton clicked via Java handler in onCreate");
 	}

@@ -6,6 +6,7 @@ import android.hardware.Sensor;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 
 import java.util.List;
@@ -26,6 +27,10 @@ public class DisplayMessageActivity extends Activity {
         TextView textView = findViewById(R.id.textView);
         textView.setText(message);
 
+    }
+
+    public void showDialog(View view){
+        SimpleAlertDialog.displayWithOK(this, "Hey you are in good Hands!");
     }
 
 }

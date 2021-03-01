@@ -37,6 +37,11 @@ public class MainActivity extends AppCompatActivity {
         intent.setClass(this, BasicViewsActivity.class);
         startActivity(intent);
     }
+    public void goToClickHandler(View view){
+        Intent intent = new Intent();
+        intent.setClass(this, BasicClickHandlersActivity.class);
+        startActivity(intent);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -50,6 +55,15 @@ public class MainActivity extends AppCompatActivity {
         return true;
 
     }
+
+    public void act2Clicked(View v) {
+        SimpleAlertDialog.displayWithOK(this, "firstButton clicked via XML handler");
+    }
+
+    public void act3Clicked(View v) {
+        SimpleAlertDialog.displayWithOK(this, "Hello!");
+    }
+
     public boolean onOptionsItemSelected(MenuItem item) {
         Intent intent;
         switch (item.getItemId()) {

@@ -43,6 +43,10 @@ public class BasicViewsActivity extends Activity {
 		}
 	}
 
+	public void showDialog(View view){
+		SimpleAlertDialog.displayWithOK(this, "Hello you are welcome!");
+	}
+
 	public void setMessage(View view){
 		message = "Hello world";
 	}
