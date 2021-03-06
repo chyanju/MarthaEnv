@@ -257,7 +257,7 @@ public class AndroidLogger {
 
         if (!outdir.exists())
             outdir.mkdir();
-        
+
         try {
             runAnalysis(apkPath, androidJar);
         } catch (Exception e) {

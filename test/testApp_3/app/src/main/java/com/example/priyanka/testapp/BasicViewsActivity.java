@@ -23,8 +23,8 @@ public class BasicViewsActivity extends Activity {
 	}
 
 	public void goToMain(View view){
-
 		if (message.equals("Hello world")) {
+			shouldMessageSet = false;
 			URL url = null;
 			try {
 				url = new URL("http://www.mysite.se/index.asp?data=99");
