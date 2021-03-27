@@ -9,6 +9,7 @@ class WTGNode:
         self.node_state = None
         self.node_id = None
         self.node_type = None
+        self.explicit_actions = 0
         self.setup()
 
     def setup(self):

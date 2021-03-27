@@ -32,8 +32,9 @@ import IPython
 SYSTEM_EVENTS = ['home', 'rotate', 'back', 'power','launch']
 class Apk:
 
-    def __init__(self, apk_path, uiautomator_device, output_dir, log):
+    def __init__(self, apk_path, uiautomator_device, output_dir, log, device_serial):
         self.apk_path = apk_path
+        self.device_serial = device_serial
         self.uiautomator_device = uiautomator_device
         self.apk = None
         self.current_state = None
@@ -44,13 +45,14 @@ class Apk:
         self.output_dir = output_dir
         self.goal_states = []
         self.resource_id_to_name = {}
+        self.wtg_obj = None
         self.resource_name_to_content = {}
         self.static_to_dynamic_matching = defaultdict(list)
         self.setup()
 
     def install_apk(self):
         if self.check_if_app_exists(self.apk.packagename) is False:
-            proc = subprocess.Popen(["adb", "install", self.apk_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(["adb", "-s", self.device_serial, "install", self.apk_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = proc.communicate()
             apk_base_name = os.path.basename(self.apk_path)
 
@@ -63,7 +65,7 @@ class Apk:
             self.log.info('%s is already installed' % os.path.basename(self.apk_path))
 
     def check_if_app_exists(self, target_package):
-        proc = subprocess.Popen(["adb", "shell", "pm", "list", "packages"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(["adb", "-s", self.device_serial, "shell", "pm", "list", "packages"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = proc.communicate()
         installed_packages = output.decode().splitlines()
 
@@ -100,7 +102,7 @@ class Apk:
 
     def start_logging(self):
         # You'll need to add any command line arguments here.
-        process = subprocess.Popen(['adb', 'logcat'], stdout=subprocess.PIPE)
+        process = subprocess.Popen(['adb', '-s', self.device_serial, 'logcat'], stdout=subprocess.PIPE)
         start_time = time.time()
         # Launch the asynchronous readers of the process' stdout.
         stdout_queue = Queue.Queue()
@@ -133,7 +135,7 @@ class Apk:
 
     def clear_user_data(self):
         try:
-            clear_command = "adb shell pm clear " + self.apk.packagename
+            clear_command = "adb -s %s shell pm clear %s" %(self.device_serial, self.apk.packagename)
             output = subprocess.check_output(clear_command, shell=True)
             PID = output.decode().strip()
 
@@ -149,12 +151,12 @@ class Apk:
 
     def kill_app(self):
         try:
-            kill_command = "adb shell ps | grep " + self.apk.packagename + " | awk '{print $2}'"
+            kill_command = "adb" + "-s" + self.device_serial + "shell ps | grep " + self.apk.packagename + " | awk '{print $2}'"
             output = subprocess.check_output(kill_command, shell=True)
             PID = output.decode().strip()
 
             if PID != '':
-                proc = subprocess.Popen(["adb", 'shell', 'kill', PID], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                proc = subprocess.Popen(["adb", '-s', self.device_serial, 'shell', 'kill', PID], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 output, error = proc.communicate()
 
                 if len(error.decode()) == 0:
@@ -190,7 +192,7 @@ class Apk:
                     main_activity = self.apk.packagename + "." + main_activity
 
             main_activity_path = self.apk.packagename + "/" + main_activity
-            proc = subprocess.Popen(["adb", 'shell', 'am', 'start', '-S', '-n', main_activity_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(["adb", '-s', self.device_serial, 'shell', 'am', 'start', '-S', '-n', main_activity_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = proc.communicate()
 
             if len(error.decode()) == 0:
@@ -219,23 +221,29 @@ class Apk:
         self.current_state = window_hierarchy
         return self.current_state
 
+
     def get_match_score(self, s_sctions, d_actions):
         match_score = 0
         explit_actions = 0
+
         for s_action in s_sctions:
+            # If the static action is a implicit event such as home, rotate etc, do nothing
             if s_action['name'] in SYSTEM_EVENTS:
                 continue
             explit_actions += 1
+
             for d_action in d_actions:
                 s_res_id = s_action['id']
                 s_res_name = 'NaN'
                 s_res_content = 'NaN'
+
                 if self.resource_id_to_name.get(s_res_id) is not None:
                     s_res_name = self.resource_id_to_name[s_res_id]
                     if self.resource_name_to_content.get(s_res_name) is not None:
                         s_res_content = self.resource_name_to_content[s_res_name]
 
                 d_action_summary = d_action.element_summary
+
                 if s_res_id in d_action_summary or s_res_name in d_action_summary or s_res_content in d_action_summary:
                     self.static_to_dynamic_matching[d_action].append(s_action)
                     match_score += 1
@@ -247,7 +255,7 @@ class Apk:
         return wtg_obj.wtg_graph
 
     def get_current_activity(self):
-        cmd = "adb shell dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'"
+        cmd = "adb" + " -s " + self.device_serial + " shell dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'"
         output = subprocess.check_output(cmd, shell=True)
         output = output.decode().strip().splitlines()
         current_activity = None
@@ -257,6 +265,10 @@ class Apk:
 
         return current_activity
 
+    # This function returns a WTG node corresponding to the current dynamic state
+    # Before calling this function one should first call get_current_state() which updates the
+    # self.current_state with the current dynamic state, as this relies on the self.current_state,
+    # therefore self.current_state should be updated to reflect the current dynamic state
     def get_wtg_state(self, wtg_obj):
         max_match_score = 0
         potential_target_nodes = []
@@ -264,11 +276,34 @@ class Apk:
         wtg_graph = wtg_obj.wtg_graph
         dynamic_available_actions = self.current_available_actions
 
+        # We iterate over the nodes of the WTG to infer which WTG node is the closest to the
+        # current dynamic state. We do by calculation the matching score between the static actions
+        # available on that node and the dynamic actions available for the current dynamic state
+        # The node with a maximum matching score is declared to be the closest for the current
+        # dynamic state
         for node in wtg_graph.nodes:
-            if current_activity_class_name is not None and current_activity_class_name not in node.node_value:
+            # We first check whether the currently focused view is an activity, if it is then current_activity_class_name
+            # will not be none. Else, it will be none
+            # If current_activity_class_name is None we know that this static node whose node type is an ACT can not
+            # correspond to the current dynamic state
+            # current_activity_class_name is not None, we check whether the static node is contains the activity name
+            if current_activity_class_name is None:
+                if node.node_type == 'ACT':
+                    continue
+            else:
+                if current_activity_class_name not in node.node_value:
+                    continue
+
+            if node.explicit_actions != len(dynamic_available_actions):
                 continue
+
+            # We get the static available actions for that node
             static_available_actions = list(node.available_actions.values())
+
+            # Here we calculate the matching score for this node, and number of explit actions. A static node can have
+            # implicit actions such as rotate, home etc. We do not consider them.
             match_score, explicit_actions = self.get_match_score(static_available_actions, dynamic_available_actions)
+
 
             if explicit_actions != 0 and len(dynamic_available_actions) != 0:
                 if match_score >= max_match_score:
@@ -291,7 +326,8 @@ class Apk:
         potential_target_nodes = self.get_wtg_state(wtg_obj)
         already_matched_static_actions = []
         potential_static_actions = []
-        matched_edges = []
+        exact_matched_edges = []
+        potential_matched_edges = []
 
         for d_action in self.current_available_actions:
             if self.static_to_dynamic_matching.get(d_action) is not None:
@@ -309,7 +345,7 @@ class Apk:
                     continue
 
                 if static_action in potential_static_actions:
-                    matched_edges.append(edge)
+                    exact_matched_edges.append(edge)
                     break
 
                 else:
@@ -317,10 +353,16 @@ class Apk:
                         continue
 
                     else:
-                        if edge not in matched_edges:
-                            matched_edges.append(edge)
+                        if edge not in potential_matched_edges:
+                            potential_matched_edges.append(edge)
 
         wtg_edges = []
+        matched_edges = []
+        if len(exact_matched_edges) != 0:
+            matched_edges = exact_matched_edges
+        else:
+            matched_edges = potential_matched_edges
+
         for matched_edge in matched_edges:
             src_node = wtg_obj.nodes[matched_edge.src_node_key]
             dest_node = wtg_obj.nodes[matched_edge.dest_node_key]
@@ -375,7 +417,7 @@ class Apk:
         return current_goal_states
 
     def clean_logcat(self):
-        proc = subprocess.Popen(["adb", "logcat", "-c"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(["adb", "-s", self.device_serial, "logcat", "-c"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = proc.communicate()
         output = output.decode().strip()
         error = error.decode().strip()

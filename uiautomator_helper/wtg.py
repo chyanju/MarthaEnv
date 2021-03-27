@@ -29,6 +29,9 @@ import networkx as nx
 from wtg_node import *
 from wtg_edge import *
 
+
+SYSTEM_EVENTS = ['home', 'rotate', 'back', 'power','launch', 'shake']
+
 class WTG:
 
     def __init__(self, wtg_root, log):
@@ -75,14 +78,19 @@ class WTG:
                 self.launch_node = node
 
     def map_actions_to_node(self):
+        visited_actions = {}
         for node in self.wtg_graph.nodes:
+            visited_actions[node] = []
             edges = list(set(list(self.wtg_graph.out_edges(node))))
 
             for edge in edges:
                 for key in self.edges[edge[0]][edge[1]].keys():
                     wtg_edge_obj = self.edges[edge[0]][edge[1]][key]
-                    node.available_actions[wtg_edge_obj] = wtg_edge_obj.get_actionable_resource()
-        print("")
+                    action_details = wtg_edge_obj.get_actionable_resource()
+                    node.available_actions[wtg_edge_obj] = action_details
+                    if action_details['name'] not in SYSTEM_EVENTS and action_details['name'] not in visited_actions[node]:
+                        visited_actions[node].append(action_details['name'])
+                        node.explicit_actions += 1
 
     def process_edges(self, wtg_adjdict):
         for src_node_key in wtg_adjdict.keys():

@@ -50,8 +50,8 @@ def get_window_hierarchy(uiautomator_device):
     window_hierarchy = uiautomator_device.dump()
     return window_hierarchy
 
-def run_adb_as_root(log):
-    proc = subprocess.Popen(["adb", "root"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+def run_adb_as_root(log, device_serial):
+    proc = subprocess.Popen(["adb", "-s", device_serial, "root"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     output, error = proc.communicate()
     output = output.decode().strip()
     error = error.decode().strip()
@@ -75,6 +75,7 @@ if __name__ == "__main__":
     parser.add_argument('-w', '--wtginput', help='The path to WTG')
     parser.add_argument('-o', '--output', default=OUTPUT_DIR, help='path to the location where output will be stored')
     parser.add_argument('-gs', '--goalstates', help='path to the location where output will be stored')
+    parser.add_argument('-ds', '--deviceserial', help='Serial of teh device connected to ADB')
 
     args = parser.parse_args()
 
@@ -120,7 +121,7 @@ if __name__ == "__main__":
     start_time = time.time()
 
     # Get the serial for the device attached to ADB
-    device_serial = get_device_serial(log)
+    device_serial = args.deviceserial
 
     if device_serial is None:
         log.warning("Device is not connected!")
@@ -129,16 +130,20 @@ if __name__ == "__main__":
 
     # Initialize the uiautomator device object using the device serial
     uiautomator_device = u2.connect(device_serial)
-    run_adb_as_root(log)
-    apk_obj = Apk(args.path, uiautomator_device, output_dir, log)
+    run_adb_as_root(log, device_serial)
+    apk_obj = Apk(args.path, uiautomator_device, output_dir, log, device_serial)
     wtg_obj = WTG(wtg, log)
     wtg_obj.set_goal_nodes(goal_states)
+    apk_obj.wtg_obj = wtg_obj
 
     apk_obj.launch_app()
 
-    #time.sleep(5)
+    time.sleep(5)
     #state = apk_obj.get_current_state()
+    #apk_obj.get_available_actionable_elements(state)
+    #wtg_state = apk_obj.get_wtg_state(wtg_obj)
     #all_actions = apk_obj.get_available_actionable_elements(state)
+    #apk_obj.get_matching_dynamic_action_to_static_action(all_actions[0], wtg_obj)
     #edges = apk_obj.get_matching_dynamic_action_to_static_action(all_actions[0], wtg_obj)
 
     #apk_obj.get_wtg_state(wtg_obj)
