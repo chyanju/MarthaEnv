@@ -139,11 +139,16 @@ if __name__ == "__main__":
     apk_obj.launch_app()
 
     time.sleep(5)
-    #state = apk_obj.get_current_state()
-    #apk_obj.get_available_actionable_elements(state)
-    #wtg_state = apk_obj.get_wtg_state(wtg_obj)
-    #all_actions = apk_obj.get_available_actionable_elements(state)
-    #apk_obj.get_matching_dynamic_action_to_static_action(all_actions[0], wtg_obj)
+    state = apk_obj.get_current_state()
+    wtg_state = apk_obj.get_wtg_state(wtg_obj)
+    all_actions = apk_obj.get_available_actionable_elements(state)
+    print(apk_obj.get_matching_dynamic_action_to_static_action(all_actions[0], wtg_obj))
+    print(apk_obj.get_matching_dynamic_action_to_static_action(all_actions[1], wtg_obj))
+    print(apk_obj.get_matching_dynamic_action_to_static_action(all_actions[2], wtg_obj))
+    print(apk_obj.get_matching_dynamic_action_to_static_action(all_actions[3], wtg_obj))
+    print(apk_obj.get_matching_dynamic_action_to_static_action(all_actions[4], wtg_obj))
+    print(apk_obj.get_matching_dynamic_action_to_static_action(all_actions[5], wtg_obj))
+
     #edges = apk_obj.get_matching_dynamic_action_to_static_action(all_actions[0], wtg_obj)
 
     #apk_obj.get_wtg_state(wtg_obj)
