@@ -1,6 +1,10 @@
 # MarthaEnv
 Static Analysis Guided Interactive Environment for Android
 
+### Prerequisites
+
+
+
 # ApkInstrumentor
   * require jdk version 12
   * `git clone git@github.com:chyanju/MarthaEnv.git && cd ApkInstrumentor`
@@ -13,7 +17,7 @@ Static Analysis Guided Interactive Environment for Android
 ### Instrument Apk using test and training data
   * `./gradlew run --args="AndroidLogger instrument /path/to/app.apk /path/to/train.json /path/to/test.json /path/to/the/output-dir"`
   * instrumented apk will be stored in : `/path/to/the/output-dir`
-  
+
 ### Auto instrument sensitive APIs
   * `./gradlew run --args="AndroidLogger auto_instrument /path/to/app.apk /path/to/the/output-dir"`
   * instrumented apk will be stored in : `/path/to/the/output-dir`
@@ -25,13 +29,9 @@ Static Analysis Guided Interactive Environment for Android
   * `cd ApkInstrumentor/demo/Android`
   * `./sign.sh path/to/instrumented.apk key "android"`
   * `adb install -r -t /path/to/signed.apk`
-  
+
 ### Running uiautomator helper
   *`/home/priyanka/research/projects/MarthaEnv/uiautomator_helper/main.py -p /path/to/the/apk -o /path/to/the/output/directory -w /path/to/the/directory/where/wtg.dot/is/present -gs /path/to/the/goal/json`
-
-# Neural Agent
-
-### simple0.apk
 
 
 
