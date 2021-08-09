@@ -14,5 +14,11 @@ def get_call_graph(apk_path):
 
     return g
 
+# Note: not very efficient
+# if many sigs may be faster to build a dictionary for lookup
+def locate_nodes(g, sigs):
+	ids = [g.vs['name'].index(sig) for sig in sigs]
+	return g.subgraph(ids)
+
 if __name__=='__main__':
     get_call_graph(sys.argv[1])
