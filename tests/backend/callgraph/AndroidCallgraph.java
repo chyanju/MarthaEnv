@@ -17,7 +17,12 @@ import java.io.File;
 import java.util.*;
 
 public class AndroidCallgraph {
-	
+
+	//https://github.com/noidsirius/SootTutorial/blob/master/src/main/java/dev/navids/soottutorial/android/AndroidUtil.java
+	public static boolean isLibraryMethod(SootMethod method){
+	    String classSig = method.getDeclaringClass().getName();
+	    return method.isJavaLibraryMethod()||classSig.startsWith("android.")||classSig.startsWith("com.google.");
+   	} 
 	public static void main(String[] args) {
 		
 		if(args.length<1) {
@@ -43,6 +48,10 @@ public class AndroidCallgraph {
 		    Iterator<Edge> ite=callGraph.iterator();
 		    while(ite.hasNext()){
 			Edge edge = ite.next();
+			if(isLibraryMethod(edge.src())||isLibraryMethod(edge.tgt())){
+				continue;
+			}
+			//Base64 encode because lgl files can't have spaces in vertex names, but Soot function signatures can
 			writer.printf("%s %s\n",
 				      Base64.getEncoder().encodeToString(edge.src().getSignature().getBytes()),
 				      Base64.getEncoder().encodeToString(edge.tgt().getSignature().getBytes()));
