@@ -25,8 +25,8 @@ public class AndroidCallgraph {
    	} 
 	public static void main(String[] args) {
 		
-		if(args.length<1) {
-			System.out.printf("Usage: java AndroidCallgraph path-to-apk\n");
+		if(args.length<2) {
+			System.out.printf("Usage: java AndroidCallgraph path-to-apk output-path [path-to-icc-model]\n");
 			System.exit(1);
 		}
 
@@ -35,7 +35,11 @@ public class AndroidCallgraph {
 		config.getAnalysisFileConfig().setAndroidPlatformDir(System.getenv("ANDROID_SDK_ROOT")+File.separator+"platforms");
 		config.setCodeEliminationMode(InfoflowConfiguration.CodeEliminationMode.NoCodeElimination);
 		config.setEnableReflection(true);
-		config.setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.CHA);
+		config.setCallgraphAlgorithm(InfoflowConfiguration.CallgraphAlgorithm.SPARK);
+
+		if(args.length>=3){
+		    config.getIccConfig().setIccModel(args[2]);
+		}
 		
 		SetupApplication app = new SetupApplication(config);
 		app.constructCallgraph();
@@ -43,7 +47,7 @@ public class AndroidCallgraph {
 		CallGraph callGraph = Scene.v().getCallGraph();
 		//Warning: not handling null case
 
-		try(PrintWriter writer = new PrintWriter(new File("base64.lgl"))){
+		try(PrintWriter writer = new PrintWriter(new File(args[1]))){
 		
 		    Iterator<Edge> ite=callGraph.iterator();
 		    while(ite.hasNext()){
