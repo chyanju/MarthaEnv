@@ -114,7 +114,8 @@ class GuiElements:
 
         while len(bfs_queue) != 0:
             top_element = bfs_queue.pop()
-            children = top_element.getchildren()
+           # children = top_element.getchildren()
+            children = list(top_element)
             bfs_queue.extend(children)
 
             for item in top_element.items():
