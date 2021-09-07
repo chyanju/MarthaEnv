@@ -67,17 +67,22 @@ public class AndroidInstrument {
 		    Unit u = ((JimpleBody)b).getFirstNonIdentityStmt();
 		    Local tmpRef = newLocal(b,"tmpRef","java.io.PrintStream");
 		    Local tmpString = newLocal(b,"tmpString","java.lang.String");
+		    Local tmpBuilder = newLocal(b,"tmpBuilder","java.lang.StringBuilder");
+		    Local tmpInt = newLocal(b,"tmpInt","int");
 		    final PatchingChain<Unit> units = b.getUnits();
-		    						
-		    // insert "tmpRef = java.lang.System.out;" 
+
+
+		    SootClass stringBuilderClass = Scene.v().getSootClass("java.lang.StringBuilder");
+		    units.insertBefore(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newNewExpr(RefType.v(stringBuilderClass))),u);
+		    units.insertBefore(Jimple.v().newInvokeStmt(Jimple.v().newSpecialInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("void <init>()").makeRef())), u);
+
+		    units.insertBefore(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.StringBuilder append(java.lang.String)").makeRef(), StringConstant.v("SOOT: MARTHA: begin method: "+b.getMethod().toString()))),u);
+
 		    units.insertBefore(Jimple.v().newAssignStmt(tmpRef, Jimple.v().newStaticFieldRef(Scene.v().getField("<java.lang.System: java.io.PrintStream out>").makeRef())), u);
 
-		    // insert "tmpLong = 'HELLO';" 
-		    units.insertBefore(Jimple.v().newAssignStmt(tmpString, StringConstant.v("SOOT: begin method: "+b.getMethod().toString())), u);
+		    units.insertBefore(Jimple.v().newAssignStmt(tmpString, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.String toString()").makeRef())),u);
 		        
-		    // insert "tmpRef.println(tmpString);" 
-		    SootMethod toCall = Scene.v().getSootClass("java.io.PrintStream").getMethod("void println(java.lang.String)");                    
-		    units.insertBefore(Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(tmpRef, toCall.makeRef(), tmpString)), u);
+		    units.insertBefore(Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(tmpRef, Scene.v().getSootClass("java.io.PrintStream").getMethod("void println(java.lang.String)").makeRef(), tmpString)), u);
 		    
 		    //check that we did not mess up the Jimple
 		    b.validate();
