@@ -67,77 +67,67 @@ public class AndroidInstrument {
 		    if(isLibraryMethod(b.getMethod())) {
 			return;
 		    }
-		    // At begining of each method, print the method name
-			
-		    Unit u = ((JimpleBody)b).getFirstNonIdentityStmt();
+		        
 		    Local tmpRef = newLocal(b,"tmpRef","java.io.PrintStream");
 		    Local tmpString = newLocal(b,"tmpString","java.lang.String");
 		    Local tmpBuilder = newLocal(b,"tmpBuilder","java.lang.StringBuilder");
 		    Local tmpInt = newLocal(b,"tmpInt","int");
 		    Local tmpButton = newLocal(b,"tmpButton","android.widget.Button");
 
+		    // Based on https://www.sable.mcgill.ca/soot/tutorial/profiler2/index.html
 		    final PatchingChain<Unit> units = b.getUnits();
 		    
 		    Iterator stmtIt = units.snapshotIterator();
-
-		    // typical while loop for iterating over each statement
 		    while (stmtIt.hasNext()) {
-
-			// cast back to a statement.
+			
 			Stmt stmt = (Stmt) stmtIt.next();
 
-			// there are many kinds of statements, here we are only
-			// interested in statements containing InvokeStatic
 			// NOTE: there are two kinds of statements may contain
 			// invoke expression: InvokeStmt, and AssignStmt
 			if (!stmt.containsInvokeExpr()) {
 			    continue;
 			}
 
-			// take out the invoke expression
 			InvokeExpr expr = (InvokeExpr) stmt.getInvokeExpr();
 
-			// now skip non-static invocations
+			// filter for setOnClickListener
 			if (!(expr instanceof VirtualInvokeExpr)) {
 			    continue;
 			}
-
-			System.out.println(expr.toString());
-			System.out.println(expr.getMethod().toString());
-			
 			if(!(expr.getMethod().toString().equals("<android.view.View: void setOnClickListener(android.view.View$OnClickListener)>"))){
 			    continue;
 			}
 
 			Local button = (Local)(((VirtualInvokeExpr)expr).getBase());
 			String callbackName = expr.getArg(0).getType().toString();
-			System.out.printf("FOUND onClick registration %s (%s) => %s\n",button.toString(),button.getType().toString(),expr.getArg(0).getType().toString());
+			//System.out.printf("FOUND onClick registration %s (%s) => %s\n",button.toString(),button.getType().toString(),expr.getArg(0).getType().toString());
 
 			SootClass stringBuilderClass = Scene.v().getSootClass("java.lang.StringBuilder");
-			//SootClass viewClass = Scene.v().getSootClass("android.view.View");
+			SootClass viewClass = Scene.v().getSootClass("android.view.View");
 
+			ArrayList<Unit> instructions = new ArrayList<Unit>();
+			
 			//get button ID
-			//units.insertBefore(Jimple.v().newAssignStmt(tmpButton, button), u); //This statement causes crash
-			//units.insertBefore(Jimple.v().newAssignStmt(tmpInt, Jimple.v().newVirtualInvokeExpr(tmpButton, viewClass.getMethod("int getId()").makeRef())), u);
+			instructions.add(Jimple.v().newAssignStmt(tmpButton, button));
+			instructions.add(Jimple.v().newAssignStmt(tmpInt, Jimple.v().newVirtualInvokeExpr(tmpButton, viewClass.getMethod("int getId()").makeRef())));
 
-
-			units.insertBefore(Jimple.v().newAssignStmt(tmpInt, IntConstant.v(-1234)), u);
-			
-			
+		       
 			//initialize StringBuilder
-			units.insertBefore(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newNewExpr(RefType.v(stringBuilderClass))),u);
-			units.insertBefore(Jimple.v().newInvokeStmt(Jimple.v().newSpecialInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("void <init>()").makeRef())), u);
+			instructions.add(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newNewExpr(RefType.v(stringBuilderClass))));
+			instructions.add(Jimple.v().newInvokeStmt(Jimple.v().newSpecialInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("void <init>()").makeRef())));
 
 			//build message
-			units.insertBefore(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.StringBuilder append(java.lang.String)").makeRef(), StringConstant.v("SOOT: MARTHA: setOnClickListener "))),u);
-			units.insertBefore(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.StringBuilder append(int)").makeRef(), tmpInt)),u);
-			units.insertBefore(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.StringBuilder append(java.lang.String)").makeRef(), StringConstant.v(" to "))),u);
-			units.insertBefore(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.StringBuilder append(java.lang.String)").makeRef(), StringConstant.v(callbackName))),u);
+			instructions.add(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.StringBuilder append(java.lang.String)").makeRef(), StringConstant.v("SOOT: MARTHA: setOnClickListener "))));
+			instructions.add(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.StringBuilder append(int)").makeRef(), tmpInt)));
+			instructions.add(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.StringBuilder append(java.lang.String)").makeRef(), StringConstant.v(" to "))));
+			instructions.add(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.StringBuilder append(java.lang.String)").makeRef(), StringConstant.v(callbackName))));
 
 			//print message
-			units.insertBefore(Jimple.v().newAssignStmt(tmpString, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.String toString()").makeRef())),u);
-			units.insertBefore(Jimple.v().newAssignStmt(tmpRef, Jimple.v().newStaticFieldRef(Scene.v().getField("<java.lang.System: java.io.PrintStream out>").makeRef())), u);
-			units.insertBefore(Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(tmpRef, Scene.v().getSootClass("java.io.PrintStream").getMethod("void println(java.lang.String)").makeRef(), tmpString)), u);
+			instructions.add(Jimple.v().newAssignStmt(tmpString, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.String toString()").makeRef())));
+			instructions.add(Jimple.v().newAssignStmt(tmpRef, Jimple.v().newStaticFieldRef(Scene.v().getField("<java.lang.System: java.io.PrintStream out>").makeRef())));
+			instructions.add(Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(tmpRef, Scene.v().getSootClass("java.io.PrintStream").getMethod("void println(java.lang.String)").makeRef(), tmpString)));
+
+			units.insertBefore(instructions, stmt);
 		    }
 
 		    
