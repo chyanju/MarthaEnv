@@ -6,9 +6,9 @@ import re
 def enqueue_listeners(watcher):
     p = subprocess.Popen(["adb","logcat","-e","MARTHA"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     for line in p.stdout:
-        m = re.match('.*MARTHA: setOnClickListener (\d+) to (.*)\n',line.decode("utf-8"))
+        m = re.match('.*MARTHA: setOnClickListener (.*) to (.*)\n',line.decode("utf-8"))
         if m:
-            watcher.click_queue.put((int(m.group(1)),m.group(2)))
+            watcher.click_queue.put((m.group(1),m.group(2)))
 
 class LogcatWatcher:
     def __init__(self):
