@@ -87,6 +87,21 @@ public class AndroidInstrument {
 		    if(thisStmt instanceof IdentityStmt && ((IdentityStmt)thisStmt).getRightOp() instanceof ThisRef){
 			tmpThis = (Local)(((IdentityStmt)thisStmt).getLeftOp());
 		    }
+		    /*
+		    Unit u = ((JimpleBody)b).getFirstNonIdentityStmt();
+
+		    SootClass stringBuilderClass = Scene.v().getSootClass("java.lang.StringBuilder");
+		    units.insertBefore(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newNewExpr(RefType.v(stringBuilderClass))),u);
+		    units.insertBefore(Jimple.v().newInvokeStmt(Jimple.v().newSpecialInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("void <init>()").makeRef())), u);
+
+		    units.insertBefore(Jimple.v().newAssignStmt(tmpBuilder, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.StringBuilder append(java.lang.String)").makeRef(), StringConstant.v("SOOT: MARTHA: begin method: "+b.getMethod().toString()))),u);
+
+		    units.insertBefore(Jimple.v().newAssignStmt(tmpRef, Jimple.v().newStaticFieldRef(Scene.v().getField("<java.lang.System: java.io.PrintStream out>").makeRef())), u);
+
+		    units.insertBefore(Jimple.v().newAssignStmt(tmpString, Jimple.v().newVirtualInvokeExpr(tmpBuilder, stringBuilderClass.getMethod("java.lang.String toString()").makeRef())),u);
+		        
+		    units.insertBefore(Jimple.v().newInvokeStmt(Jimple.v().newVirtualInvokeExpr(tmpRef, Scene.v().getSootClass("java.io.PrintStream").getMethod("void println(java.lang.String)").makeRef(), tmpString)), u);
+		    */
 			
 		    Iterator stmtIt = units.snapshotIterator();
 		    while (stmtIt.hasNext()) {
