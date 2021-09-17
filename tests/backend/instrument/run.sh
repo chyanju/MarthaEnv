@@ -41,7 +41,7 @@ then
 	echo password | apksigner sign --ks my.keystore aligned.apk || exit
 	#install -r doesn't work if signature changed
 	#adb uninstall com.example.app
-	adb install -r aligned.apk || exit
+	adb install -r -t aligned.apk || exit
 	#clear log
 	adb logcat -c
 	echo "Running adb logcat"
