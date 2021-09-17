@@ -188,6 +188,9 @@ class Apk:
                 if main_activity.startswith("."):
                     main_activity = self.apk.packagename + main_activity
 
+                elif main_activity.startswith('com'):
+                    pass
+
                 else:
                     main_activity = self.apk.packagename + "." + main_activity
 
