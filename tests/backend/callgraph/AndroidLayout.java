@@ -21,7 +21,7 @@ class MyVisitor extends AxmlVisitor{
     @Override
     public void attr(String ns, String name, int resourceId, int type, Object obj) {
 	super.attr(ns, name, resourceId, type, obj);
-	System.out.printf("%s ATTR %s %s %d %d\n",level,ns,name,resourceId,type);
+	System.out.printf("%s ATTR %s %s %d %d %s\n",level,ns,name,resourceId,type,obj.toString());
     }
     @Override
     public void line(int ln) {
@@ -64,7 +64,7 @@ public class AndroidLayout {
 		    while(entries.hasMoreElements()){
 			ZipEntry entry = entries.nextElement();
 			String fileName = entry.getName();
-			if(fileName.startsWith("res/layout")&&fileName.endsWith(".xml")){
+			if((fileName.startsWith("res/layout")||fileName.contains("AndroidManifest"))&&fileName.endsWith(".xml")){
 			    System.out.println(fileName);
 			    InputStream stream = zipFile.getInputStream(entry);
 			    //String str = IOUtils.toString(stream,StandardCharsets.UTF_8);
