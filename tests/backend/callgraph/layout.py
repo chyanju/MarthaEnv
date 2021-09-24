@@ -1,11 +1,8 @@
-import base64
-import igraph
 import subprocess
 import sys
 import os
 import re
-import tempfile
-import shutil
+import pickle
 
 def get_layout_onclicks(apk_path):
     apk = os.path.basename(apk_path)
@@ -29,7 +26,7 @@ def get_layout_onclicks(apk_path):
             xml = m.group(1)
             buttonid = m.group(2)
             callbackname = m.group(3)
-            table[xml][buttonid]=callbackname
+            table[xml][int(buttonid)]=callbackname
     return table
         
 
@@ -40,4 +37,8 @@ if __name__=='__main__':
         exit()
 
     table = get_layout_onclicks(sys.argv[1])
+    
     print(table)
+    
+    with open('onclicks.p','wb') as f:
+        pickle.dump(table,f)
