@@ -624,7 +624,8 @@ CURR_DIR = os.path.dirname(os.getcwd())
 OUTPUT_DIR = os.path.join(CURR_DIR, "results")
 
 args = {
-    "path": "/Users/joseph/Downloads/00a2d33447e572fff3b0f5ecf40e0c53596f6952c94db385be4720ea249cff5b_instrumented.apk",
+    "path": "../../tests/backend/instrument/aligned.apk",
+#    "path": "/Users/joseph/Downloads/00a2d33447e572fff3b0f5ecf40e0c53596f6952c94db385be4720ea249cff5b_instrumented.apk",
 #     "path": "../results/test_app_1/testapp_1.apk",
 #     "path": "../results/test_app_2/testapp_2.apk",
 #     "path": "../test/com.github.cetoolbox_11/app_simple0.apk",
