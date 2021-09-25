@@ -10,7 +10,12 @@ import requests
 from enum import IntEnum
 
 # Globals
+RPC_ENDPOINT = 'http://192.168.51.61:8545'
+API_KEY = '2263VM492QTUNN3NRH5KN2II9VN9BM8UT2'
 DATE_FORMAT = '%Y-%m-%d %I:%M:%S %p'
+DATASET_DIR = '../../crawled-contracts'
+DB_PATH = os.path.join(DATASET_DIR, 'contracts.sqlite')
+LOG_PATH = os.path.join(DATASET_DIR, 'contracts-crawler.log')
 
 # ANSI color codes
 class Color:
@@ -235,7 +240,7 @@ def read_config(config_file):
     config_file = config_file.strip()
     
     # File not provided
-    if config_file is None or config_file == '':
+    if config_file is None or config_file is '':
         err('Configuration file not provided')
         sys.exit(1)
 
