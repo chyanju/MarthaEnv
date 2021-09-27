@@ -1,0 +1,9 @@
+certifi==2021.5.30
+charset-normalizer==2.0.6
+editdistance==0.5.3
+idna==3.2
+numpy==1.21.2
+python-igraph==0.9.6
+requests==2.26.0
+texttable==1.6.4
+urllib3==1.26.7
