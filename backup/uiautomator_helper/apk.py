@@ -52,7 +52,7 @@ class Apk:
 
     def install_apk(self):
         if self.check_if_app_exists(self.apk.packagename) is False:
-            proc = subprocess.Popen(["adb", "-s", self.device_serial, "install", self.apk_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            proc = subprocess.Popen(["adb", "-s", self.device_serial, "install", "-t", self.apk_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             output, error = proc.communicate()
             apk_base_name = os.path.basename(self.apk_path)
 
@@ -383,7 +383,7 @@ class Apk:
 
         while len(bfs_queue) != 0:
             top_element = bfs_queue.pop()
-            children = top_element.getchildren()
+            children = list(top_element)
             bfs_queue.extend(children)
 
             if 'clickable' in top_element.keys():
