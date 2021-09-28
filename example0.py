@@ -15,11 +15,14 @@ time.sleep(2)
 tmp_state = env.apk.get_whxml()
 tmp_action_list = env.apk.get_available_actionable_elements()
 
+print(tmp_action_list)
+
 for elem in tmp_action_list:
     cg_node = env.get_node_for_action(elem)
+    print(f'{elem.resource_id} => vertex {cg_node}')
     
 
 
-env.apk.perform_action(tmp_action_list[0])
+#env.apk.perform_action(tmp_action_list[0])
 
 
