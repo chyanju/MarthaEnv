@@ -4,6 +4,8 @@ from queue import Queue, Empty
 import re
 import pickle
 
+from .apk import Apk
+
 def enqueue_listeners(watcher):
     p = subprocess.Popen(["adb","logcat","-e","MARTHA"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     for line in p.stdout:
@@ -25,7 +27,7 @@ def enqueue_listeners(watcher):
                 for res_id, funct_name in watcher.layout_onclicks[f'res/{xml}.xml'].items():
                     print(res_id,funct_name)
                     try:
-                        res_name = watcher.residmanager.id_to_name(res_id)
+                        res_name = apk.resource_id_to_name[str(res_id)]
                         print(res_id,'=',res_name,funct_name)
                         callback = f'<{activity}: void {funct_name}(android.view.View)>'
                         watcher.click_queue.put((res_name,callback))
@@ -39,12 +41,12 @@ def enqueue_listeners(watcher):
             #print(line)
 
 class LogcatWatcher:
-    def __init__(self,residmanager,layout_onclicks):
+    def __init__(self,apk: Apk,layout_onclicks):
         self.click_queue = Queue()
         self.click_map = dict()
         self.layout_onclicks = layout_onclicks
         self.thread = Thread(target=enqueue_listeners, args=(self,), daemon=True).start()
-        self.residmanager = residmanager
+        self.apk = apk
 
     def get_click_map(self):
         try:
