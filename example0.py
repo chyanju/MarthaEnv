@@ -23,6 +23,4 @@ for elem in tmp_action_list:
     
 
 
-#env.apk.perform_action(tmp_action_list[0])
-
-
+env.apk.perform_action(tmp_action_list[1])

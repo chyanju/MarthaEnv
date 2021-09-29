@@ -28,6 +28,7 @@ class Apk:
         self.logger = init_logging("analyzer.{}".format(self.apk_base_name), console=True)
         self.logging = True
         self.resource_id_to_name = {}
+        self.resource_name_to_id = {}
         self.resource_name_to_content = {}
         self.setup()
 
@@ -94,6 +95,7 @@ class Apk:
             for res_name in self.apk.arsc['resources.arsc'].resource_keys[self.apk.packagename][res_type].keys():
                 res_id = self.apk.arsc['resources.arsc'].resource_keys[self.apk.packagename][res_type][res_name]
                 self.resource_id_to_name[str(res_id)] = res_name
+                self.resource_name_to_id[res_name]=str(res_id)
         locale = '\x00\x00'
         for value_pair in arsc_parser.values[self.apk.packagename][locale]['string']:
             self.resource_name_to_content[value_pair[0]] = value_pair[1]
