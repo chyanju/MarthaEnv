@@ -13,6 +13,9 @@ from .apk import Apk
 from .logcatwatcher import LogcatWatcher
 from .residmanager import ResourceIDManager
 
+from screen import ScreenObject
+from saveScreen import ScreenData
+
 class ApkEnvironment(gym.Env):
 
     def __init__(self, apk: Apk):
@@ -69,4 +72,12 @@ class ApkEnvironment(gym.Env):
 
     # todo: Li-el
     def get_abstract_whxml(self, arg_whxml: str, arg_nrow: int, arg_ncol: int, arg_nchannel: int) -> Any:
-        pass
+        screen = ScreenObject(arg_whxml, 1440, 2960)
+        screen.setRelevantComponents(['clickable'])
+        screen.fixedChannels =arg_nchannel
+        screen.createFixedChannels()
+        screen.setTileDimensions((arg_nrow, arg_ncol))
+        return screen
+        
+       
+
