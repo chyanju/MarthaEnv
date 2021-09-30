@@ -14,7 +14,7 @@ def decode_base64_graph(path):
 
 def generate_call_graph(apk_path):
     # Get ICC edges
-    android_platforms_path = os.path.join(os.environ["ANDROID_SDK_ROOT"],'platforms')
+    android_platforms_path = os.path.join(os.environ["HOME"],'ra','android-platforms')
     apk = os.path.basename(apk_path)
     print(f"apk={apk}")
     
