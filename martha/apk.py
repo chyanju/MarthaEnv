@@ -187,7 +187,7 @@ class Apk:
         # fixme: there's a 2s time interval
         time.sleep(2)
 
-    def get_whxml(self):
+    def get_curr_whxml(self):
         return self.uiautomator_device.dump_hierarchy()
 
     def get_current_activity(self):
@@ -201,8 +201,8 @@ class Apk:
 
     # This function expects the current device state as an argument
     # and returns an array of actionable elements
-    def get_available_actionable_elements(self):
-        window_hierarchy = self.get_whxml()
+    def get_curr_actions(self):
+        window_hierarchy = self.get_curr_whxml()
         window_root = ET.XML(window_hierarchy)
         bfs_queue = []
         bfs_queue.append(window_root)

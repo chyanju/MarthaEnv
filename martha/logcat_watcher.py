@@ -4,8 +4,6 @@ from queue import Queue, Empty
 import re
 import pickle
 
-from .apk import Apk
-
 def enqueue_listeners(watcher):
     p = subprocess.Popen(["adb","logcat","-e","MARTHA"],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     for line in p.stdout:
@@ -41,7 +39,7 @@ def enqueue_listeners(watcher):
             #print(line)
 
 class LogcatWatcher:
-    def __init__(self,apk: Apk,layout_onclicks):
+    def __init__(self, apk, layout_onclicks):
         self.click_queue = Queue()
         self.click_map = dict()
         self.layout_onclicks = layout_onclicks

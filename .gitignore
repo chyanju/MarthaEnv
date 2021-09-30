@@ -1,3 +1,7 @@
+benchmarks/*
+!benchmarks/.keep
+tmp/
+
 __pycache__/
 *.py[cod]
 .venv/
