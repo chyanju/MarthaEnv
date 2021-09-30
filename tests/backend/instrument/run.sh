@@ -16,8 +16,10 @@ then
 	echo "Usage: $0 apk-name install"
 	exit
 else
-	APK=$1
+	APK_PATH=$1
 fi
+
+APK=$(basename $APK_PATH)
 
 
 # https://github.com/soot-oss/soot/issues/528
@@ -30,7 +32,7 @@ javac AndroidInstrument.java || exit
 rm -rf sootOutput/
 
 # -allow-phantom-refs to prevent crashing, from https://github.com/soot-oss/soot/issues/284, not entirely sure if I should
-java AndroidInstrument -android-jars "$ANDROID_SDK_ROOT/platforms" -process-dir "$APK" -allow-phantom-refs || exit
+java AndroidInstrument -android-jars "$ANDROID_SDK_ROOT/platforms" -process-dir "$APK_PATH" -allow-phantom-refs || exit
 
 # At this point, the instrumented APK is in sootOutput/
 # The following steps are just to sign, install, and run it
