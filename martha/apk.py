@@ -40,8 +40,8 @@ class Apk:
         self.apk.get_android_resources()._analyse()
         self.populate_resource_ids()
         self.install_apk()
-        th = threading.Thread(target=self.start_logging)
-        th.start()
+        # th = threading.Thread(target=self.start_logging)
+        # th.start()
 
     def get_device_serial(self):
         device_serial = None
@@ -100,26 +100,26 @@ class Apk:
         for value_pair in arsc_parser.values[self.apk.packagename][locale]['string']:
             self.resource_name_to_content[value_pair[0]] = value_pair[1]
 
-    def start_logging(self):
-        process = subprocess.Popen(['adb', '-s', self.device_serial, 'logcat'], stdout=subprocess.PIPE)
-        start_time = time.time()
-        # launch the asynchronous readers of the process' stdout
-        stdout_queue = Queue.Queue()
-        stdout_reader = AsynchronousFileReader(process.stdout, stdout_queue)
-        stdout_reader.start()
-        # check the queues if we received some output (until there is nothing more to get)
-        try:
-            while not stdout_reader.eof():
-                while not stdout_queue.empty():
-                    if not self.logging:
-                        process.kill()
-                        return
-                    line = stdout_queue.get()
-                    # fixme: add goal state checking commands
-                    if "TRAIN DATA".encode() in line or "TEST DATA".encode() in line:
-                        pass
-        finally:
-            process.kill()
+    # def start_logging(self):
+    #     process = subprocess.Popen(['adb', '-s', self.device_serial, 'logcat'], stdout=subprocess.PIPE)
+    #     start_time = time.time()
+    #     # launch the asynchronous readers of the process' stdout
+    #     stdout_queue = Queue.Queue()
+    #     stdout_reader = AsynchronousFileReader(process.stdout, stdout_queue)
+    #     stdout_reader.start()
+    #     # check the queues if we received some output (until there is nothing more to get)
+    #     try:
+    #         while not stdout_reader.eof():
+    #             while not stdout_queue.empty():
+    #                 if not self.logging:
+    #                     process.kill()
+    #                     return
+    #                 line = stdout_queue.get()
+    #                 # fixme: add goal state checking commands
+    #                 if "TRAIN DATA".encode() in line or "TEST DATA".encode() in line:
+    #                     pass
+    #     finally:
+    #         process.kill()
 
     def clear_user_data(self):
         try:
@@ -223,7 +223,8 @@ class Apk:
         return clickable_gui_elements
 
     def clear_logcat(self):
-        proc = subprocess.Popen(["adb", "-s", self.device_serial, "logcat", "-c"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # proc = subprocess.Popen(["adb", "-s", self.device_serial, "logcat", "-c"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        proc = subprocess.Popen(["adb", "logcat", "-c"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = proc.communicate()
         output = output.decode().strip()
         error = error.decode().strip()

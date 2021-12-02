@@ -1,9 +1,0 @@
-The instrumented APK is located in ~/Downloads/00a2d33447e572fff3b0f5ecf40e0c53596f6952c94db385be4720ea249cff5b_instrumented.apk
-This is currently hardcoded and should be changed.
-
-cd martha/
-python callgraph.py ~/Downloads/00a2d33447e572fff3b0f5ecf40e0c53596f6952c94db385be4720ea249cff5b_instrumented.apk #This generates intermediates/graph.p; You can use the uninstrumented APK for this step as well.
-python layout.py ~/Downloads/00a2d33447e572fff3b0f5ecf40e0c53596f6952c94db385be4720ea249cff5b_instrumented.apk #This generates intermediates/onclicks.p; You can use the uninstrumented APK for this step a
-s well.
-
-python ../example00.py

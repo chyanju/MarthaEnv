@@ -21,6 +21,7 @@ class GuiElement:
         self.selected = None
         self.visible_to_user = None
         self.bounds = None
+        self.parsed_bounds = None
         self.x = None
         self.y = None
         self.setup()
@@ -71,6 +72,10 @@ class GuiElement:
                 self.visible_to_user = value
             else:
                 pass
+
+        # parse bounds
+        self.parsed_bounds = eval(self.bounds.replace("][",","))
+        self.attributes["parsed_bounds"] = self.parsed_bounds
 
     def compute_coordinate(self):
         left = self.bounds.split('][')[0]
