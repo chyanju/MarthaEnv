@@ -94,6 +94,7 @@ class ApkEnvironment(gym.Env):
         self.apk_call_graph = None
 
     def reset(self):
+        print("# [debug] reset")
         self.setup()
         self.apk.clear_logcat()
         self.apk.launch_app()

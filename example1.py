@@ -6,6 +6,11 @@ from martha.logcat_watcher import LogcatWatcher
 from martha.simple_mlp import SimpleMLP
 import os
 
+import logging
+logging.disable(logging.INFO)
+logging.disable(logging.WARNING)
+# logging.disable(logging.NOTSET)
+
 import ray
 from ray import tune
 from ray.rllib.agents import ppo, dqn
@@ -28,6 +33,15 @@ ModelCatalog.register_custom_model("simple_mlp", SimpleMLP)
 
 ppo_config = ppo.DEFAULT_CONFIG.copy()
 rl_config = {
+    # number of fragments (actions) in one episode
+    # since here we only have 1 worker, it's the same as batch size
+    # generally batch_size >= fragment_length, for multiple workers
+    "rollout_fragment_length": 128,
+    "train_batch_size": 128,
+
+    # mini batch size <= train batch size
+    "sgd_minibatch_size": 16,
+
     "env": ApkEnvironment,
     "env_config": env_config,
     "model": {

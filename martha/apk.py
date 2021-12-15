@@ -136,7 +136,7 @@ class Apk:
 
     def kill_app(self):
         try:
-            kill_command = "adb" + "-s" + self.device_serial + "shell ps | grep " + self.apk.packagename + " | awk '{print $2}'"
+            kill_command = "adb" + " -s " + self.device_serial + " shell ps | grep " + self.apk.packagename + " | awk '{print $2}'"
             output = subprocess.check_output(kill_command, shell=True)
             PID = output.decode().strip()
             if PID != '':
@@ -190,14 +190,14 @@ class Apk:
     def get_curr_whxml(self):
         return self.uiautomator_device.dump_hierarchy()
 
-    def get_current_activity(self):
-        cmd = "adb" + " -s " + self.device_serial + " shell dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'"
-        output = subprocess.check_output(cmd, shell=True)
-        output = output.decode().strip().splitlines()
-        current_activity = None
-        if output!= '' and "/" in output[0]:
-            current_activity = output[0].split("/")[1].split("}")[0]
-        return current_activity
+    # def get_current_activity(self):
+    #     cmd = "adb" + " -s " + self.device_serial + " shell dumpsys window windows | grep -E 'mCurrentFocus|mFocusedApp'"
+    #     output = subprocess.check_output(cmd, shell=True)
+    #     output = output.decode().strip().splitlines()
+    #     current_activity = None
+    #     if output!= '' and "/" in output[0]:
+    #         current_activity = output[0].split("/")[1].split("}")[0]
+    #     return current_activity
 
     # This function expects the current device state as an argument
     # and returns an array of actionable elements

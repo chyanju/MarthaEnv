@@ -32,9 +32,9 @@ class AsynchronousFileReader(threading.Thread):
         '''Check whether there is no more content to expect.'''
         return not self.is_alive() and self._queue.empty()
 
-def substring_matches_line(line):
-    target_substring = "TRAIN DATA"
-    return target_substring in line
+# def substring_matches_line(line):
+#     target_substring = "TRAIN DATA"
+#     return target_substring in line
 
 
 '''
