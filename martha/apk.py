@@ -55,6 +55,16 @@ class Apk:
             device_serial = all_serials[0].decode().strip()
         return device_serial
 
+    def press_home_button(self):
+        proc = subprocess.Popen(["adb", "shell", "input", "keyevent", "KEYCODE_HOME"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = proc.communicate()
+        output = output.decode().strip()
+        error = error.decode().strip()
+        if len(error) == 0:
+            self.logger.info("Pressing home button.")
+        else:
+            self.logger.warning("Error pressing home button, debug!")
+
     def run_adb_as_root(self):
         proc = subprocess.Popen(["adb", "-s", self.device_serial, "root"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output, error = proc.communicate()

@@ -95,6 +95,9 @@ class ApkEnvironment(gym.Env):
 
     def reset(self):
         print("# [debug] reset")
+        if self.apk is not None:
+            # avoid stucking in share screen
+            self.apk.press_home_button()
         self.setup()
         self.apk.clear_logcat()
         self.apk.launch_app()
@@ -123,7 +126,24 @@ class ApkEnvironment(gym.Env):
         tmp_action_list = self.get_curr_actions()
 
         if len(tmp_action_list)<=0:
-            raise EnvironmentError("There is available action; the environment status is done.")
+            # raise EnvironmentError("There is available action; the environment status is done.")
+            # (possible) this happens when you click "share" and a dialog jumps out, whose buttons are not captured
+            # clear watcher
+            _ = self.logcat_watcher.get_last_reward()
+            # raise EnvironmentError("Action id is not in range, required: [0, {}), got: {}".format(len(tmp_action_list), arg_action_id))
+            print("# [debug][terminate0] action: {}".format(arg_action_id))
+            return [
+                {
+                    "n_actions": [0],
+                    "action_mask": [0 for _ in range(ApkEnvironment.SCREEN_MAX_ACTIONS)],
+                    "action_x": np.asarray([-1 for _ in range(ApkEnvironment.SCREEN_MAX_ACTIONS)], dtype=np.int32),
+                    "action_y": np.asarray([-1 for _ in range(ApkEnvironment.SCREEN_MAX_ACTIONS)], dtype=np.int32),
+                    "state": self.get_curr_state(),
+                },
+                0.0, # 0 reward immediately since this is not allowed, and terminate
+                True, # terminate!
+                {}, # info
+            ]
 
         # note: if this happens, directly return bad rewards
         #       because in exploration stage, the agent may sample non-existing id
@@ -131,7 +151,7 @@ class ApkEnvironment(gym.Env):
             # clear watcher
             _ = self.logcat_watcher.get_last_reward()
             # raise EnvironmentError("Action id is not in range, required: [0, {}), got: {}".format(len(tmp_action_list), arg_action_id))
-            print("# [debug][terminate] action: {}".format(arg_action_id))
+            print("# [debug][terminate1] action: {}".format(arg_action_id))
             return [
                 {
                     "n_actions": [0],
